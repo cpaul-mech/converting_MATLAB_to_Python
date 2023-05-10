@@ -74,4 +74,5 @@ axis.set_title('Free Response Data')
 axis.legend(loc='best')
 plt.savefig("FreeResponse.svg")
 plt.show()
+plt.close()
 
