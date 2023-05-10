@@ -41,3 +41,15 @@ plt.plot(forced_T, forced_w, 'r-', linewidth=2, label='Forced Response')
 plt.title('Forced Response Data')
 plt.show()
 
+## Use odeint to solve the differential equation.
+"""ShortFree = FreeResponse(10045:29150,1:2);
+ShortFree(:,1) = ShortFree(:,1) - 10.044;
+ShortT = ShortFree(:,1);
+ShortW = ShortFree(:,2);"""
+ShortFree = free_response_data[10044:29150,0:2]
+ShortFree[:,0] = ShortFree[:,0] - 10.044
+ShortT = ShortFree[:,0]
+ShortW = ShortFree[:,1]
+
+tspan = np.linspace(0,20)
+
