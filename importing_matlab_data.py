@@ -49,7 +49,6 @@ free63 = .37 * freeMax
 FreeTau = 19.5785294 - 10.04
 FreeB = I_disk / FreeTau
 
-## Use odeint to solve the differential equation.
 
 ShortFree = free_response_data[10044:29150,0:2]
 ShortFree[:,0] = ShortFree[:,0] - 10.044
