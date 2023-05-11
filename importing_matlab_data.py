@@ -8,6 +8,7 @@ import scipy.io as sio
 # import pi 
 from math import pi
 #load the data from the .mat file
+import control.matlab as control
 
 forced_response_data = sio.loadmat('forced_response_data.mat')
 free_response_data = sio.loadmat('free_response_data.mat')
