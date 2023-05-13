@@ -34,9 +34,9 @@ sys21 = ct.tf(1, [1, 1])
 omega_vector = np.linspace(0, 10, 1000)
 sys_list = [sys16, sys17, sys18, sys19, sys20, sys21]
 # h_test = ct.bode_plot(sys16)
-mag, phase, omega = ct.bode_plot(sys_list, Hz = False, deg = True, omega = omega_vector)
-plt.legend(["sys16", "sys17", "sys18", "sys19", "sys20", "sys21"])
-plt.show()
+mag, phase, omega = ct.bode_plot(sys_list, Hz = False, deg = True, omega = omega_vector, plot= False)
+# plt.legend(["sys16", "sys17", "sys18", "sys19", "sys20", "sys21"])
+# plt.show()
 # convert phase from radians to degrees
 for i in range(len(phase)):
     for j in range(len(phase[i])):
@@ -50,10 +50,33 @@ for i in range(len(mag)):
 for i in range(len(phase)):
     phase_plot.plot(omega[i], phase[i], label = "sys" + str(i+16))
 #show the legend
-mag_plot.set_title("Magnitude")
-phase_plot.set_title("Phase")
+mag_plot.set_title("Bode Plot")
 mag_plot.legend()
+phase_plot.set_xlabel("Frequency (rad/s)")
+mag_plot.set_ylabel("Magnitude Ratio")
+phase_plot.set_ylabel("Phase (deg)")
 phase_plot.legend()
 #show the plot
+plt.savefig("bode_plot.svg")
+plt.show()
+
+# we can plot the poles of the system as follows:
+poles_list = []
+Poles_plot = plt.figure(1, figsize=(8, 6), dpi=100)
+poles_plot_axis = Poles_plot.add_subplot(1,1,1)
+
+for i in range(len(sys_list)):
+    poles = ct.pole(sys_list[i])
+    poles_list.append(poles)
+    poles_plot_axis.plot(np.real(poles), np.imag(poles), 'x', label = "sys" + str(i+16))
+
+poles_plot_axis.set_title("Poles")
+poles_plot_axis.set_xlabel("Real")
+poles_plot_axis.set_ylabel("Imaginary")
+poles_plot_axis.grid()
+#Now add vertical and horizontal lines at 0 to show the axes
+poles_plot_axis.axvline(x=0, color='k')
+poles_plot_axis.axhline(y=0, color='k')
+poles_plot_axis.legend()
 plt.show()
 
