@@ -231,7 +231,10 @@ import scipy.io as sio
 import matplotlib.pyplot as plt
 import control as ct
 import math
-def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file):
+def helper_extra_arguments(y, t):
+    
+
+def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
     dx,dy,dz = Vox[0],Vox[1],Vox[2] # Voxel dimensions
     a = dx/dy                       # Dimensionless Increment NEEDED TO CHANGE TO LOWERCASE TO LET PYTHON KNOW IT IS NOT A CONSTANT.
     b = dx/dz                       # Dimensionless Increment
