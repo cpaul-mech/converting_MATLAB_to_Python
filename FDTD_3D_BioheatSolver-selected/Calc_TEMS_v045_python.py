@@ -234,7 +234,8 @@ import math
 matlab_data = sio.loadmat('DemoModel.mat')
 
 def helper_extra_arguments(y, t):
-    
+    # Do I need a helper function to allow for extra arguments?
+    return None
 
 def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
     dx,dy,dz = Vox[0],Vox[1],Vox[2] # Voxel dimensions
