@@ -231,6 +231,8 @@ import scipy.io as sio
 import matplotlib.pyplot as plt
 import control as ct
 import math
+matlab_data = sio.loadmat('DemoModel.mat')
+
 def helper_extra_arguments(y, t):
     
 
