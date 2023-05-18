@@ -30,7 +30,8 @@
 %                       For data sets which involve a large number of time
 %                       points (i.e. enough that all the memory will be
 %                       consumed), writing to a file will prevent memory
-%                       thrashing and speed the program up.
+%                       thrashing and speed the program up. Generally
+%                       writes to a mat file. 
 % -------- Output Data --------
 %   TEMPS               4D finite-difference temperature array
 %   time                time vector associated with TEMPS array
@@ -75,8 +76,10 @@ end
 % Create Matrices of Properties
 % ----------------------------------------
 k1=zeros(nX,nY,nZ,'single');
+Modl(1:50,1:50,1:50)
 k1(:,:,:)=k(Modl(:,:,:));
 inv_k1 = 1/k1;
+k1(1:50,1:50,1:50)
 
 rho_m=zeros(nX,nY,nZ,'single');
 rho_m(:,:,:)=rho(Modl(:,:,:));
