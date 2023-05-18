@@ -86,23 +86,27 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     # ----------------------------------------
     # Create Matrices of Properties
     # ----------------------------------------
+    # Create empty matrices.
     k1 = np.zeros((nx,ny,nz),dtype=np.float32)
-    k1[:,:,:] = k_param[modl[:,:,:]] #MAYBE USE LIST comprehension to accomplish this?
-    k1 = 
-    inv_k1 = 1/k1
-
     rho_m = np.zeros((nx,ny,nz),dtype=np.float32)
-    rho_m[:,:,:] = rho[modl[:,:,:]]
-
     cp_m = np.zeros((nx,ny,nz),dtype=np.float32)
-    cp_m[:,:,:] = cp[modl[:,:,:]]
-
     if wType==1:
         w_m = np.zeros((nx,ny,nz),dtype=np.float32)
-        w_m[:,:,:] = w[modl[:,:,:]]
+        operate_on_w_m = True
     elif wType==2:
         w_m = w
         del w
+    # Use a for loop to fill in matrices with appropriate values from the input vectors.
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(nz):
+                k1[i,j,k] = k_param[int(modl[i,j,k])-1]
+                rho_m[i,j,k] = rho[int(modl[i,j,k])-1]
+                cp_m[i,j,k] = cp[int(modl[i,j,k])-1]
+                if operate_on_w_m:
+                    w_m[i,j,k] = w[int(modl[i,j,k])-1]
+    # Calculate inverse of k1 for use in solver
+    inv_k1 = 1/k1
     
     rho_cp = rho_m*cp_m                       # Simplfies later equations by combining density and specific heat
 
