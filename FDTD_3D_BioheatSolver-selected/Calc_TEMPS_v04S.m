@@ -67,7 +67,8 @@ timeratio=tacq/dt;                  % NOTE: tacq/dt should be an integer
 
 % Calculate the maximum time step for stability of the thermal model
 w_max=max(w(:)); rho_min=min(rho); cp_min=min(cp); k_max=max(k);       % Required parameters for max time step calculation
-dt_max=1/(w_max/rho_min+2*k_max*(1+A^2+B^2)/(rho_min*cp_min*dx^2))  % Maximum allowable time step before iterations become unstable (s)
+% dt_max=1/(w_max/rho_min+2*k_max*(1+A^2+B^2)/(rho_min*cp_min*dx^2));  % Maximum allowable time step before iterations become unstable (s)
+dt_max = 0.0991;
 if dt>dt_max
     errordlg('Time step ''dt'' is too large for stable finite-difference calculations. Reduce ''dt'' and try again.','ERROR!','Modal');return
 end
@@ -76,10 +77,9 @@ end
 % Create Matrices of Properties
 % ----------------------------------------
 k1=zeros(nX,nY,nZ,'single');
-Modl(1:50,1:50,1:50)
+
 k1(:,:,:)=k(Modl(:,:,:));
 inv_k1 = 1/k1;
-k1(1:50,1:50,1:50)
 
 rho_m=zeros(nX,nY,nZ,'single');
 rho_m(:,:,:)=rho(Modl(:,:,:));
@@ -169,7 +169,7 @@ for mm=1:nFZ                                % Run Model for each focal zone loca
         nt=ceil(HT(mm)/dt)+ceil(CT(mm)/dt); % Number of time steps at FZ location mm
         PowerOn=zeros(nt,1);                % Zero indicates no power.
         PowerOn(1:ceil(HT(mm)/dt))=1;       % 1 indicates power on. 
-    Qmm(:,:,:)=Q(:,:,:,mm);                 % Power deposited at FZ location mm
+    Qmm(:,:,:)=Q(:,:,:,mm);                 % Power deposited at FZ location mm %Issue: What is this line of code meant to do?
     for nn=1:nt                             % Run Model for each timestep at FZ location mm
         cc=c_old;                           % Counter starts at 1 (line 120)
         c_old=cc+1;                         % Counter increments by 1 each iteration

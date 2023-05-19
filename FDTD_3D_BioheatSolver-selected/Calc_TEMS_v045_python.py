@@ -61,7 +61,8 @@ import scipy.io as sio
 # import matplotlib.pyplot as plt
 # import control as ct
 import math
-import tic_toc_generator as ttg
+# import tic_toc_generator as ttg
+import time
 # matlab_data = sio.loadmat('DemoModel.mat')
 
 def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
@@ -70,9 +71,9 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     b = dx/dz                       # Dimensionless Increment
     nx,ny,nz = modl.shape           # Itentify number of voxels.
     t_final = np.sum(HT) + np.sum(CT)     # Total treatment time to be modeled. [s].
-    time = np.arange(0,t_final,tacq) # Time vector
+    time_vector = np.arange(0,t_final,tacq) # Time vector
     NT = t_final/dt                 # Total number of FD time steps
-    nntt = len(time)                # Total number of temperature distributions in time to save
+    nntt = len(time_vector)                # Total number of temperature distributions in time to save
     timeratio = tacq/dt             # NOTE: tacq/dt should be an integer
 
     # Calculate the maximum time step for stability of the thermal model
@@ -90,6 +91,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     k1 = np.zeros((nx,ny,nz),dtype=np.float32)
     rho_m = np.zeros((nx,ny,nz),dtype=np.float32)
     cp_m = np.zeros((nx,ny,nz),dtype=np.float32)
+    operate_on_w_m = False
     if wType==1:
         w_m = np.zeros((nx,ny,nz),dtype=np.float32)
         operate_on_w_m = True
@@ -97,14 +99,23 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         w_m = w
         del w
     # Use a for loop to fill in matrices with appropriate values from the input vectors.
+    print("Filling in matrices with appropriate values from the input vectors.")
+    # Print the time of the beginning of this execution
+    begin_time = time.time()
+    print("Time of beginning of execution: ", begin_time)
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
-                k1[i,j,k] = k_param[int(modl[i,j,k])-1]
-                rho_m[i,j,k] = rho[int(modl[i,j,k])-1]
-                cp_m[i,j,k] = cp[int(modl[i,j,k])-1]
+                x = modl[i,j,k]
+                x = int(x)
+                x-=1
+                k1[i,j,k] = k_param[0][x]
+                rho_m[i,j,k] = rho[0][x]
+                cp_m[i,j,k] = cp[0][x]
                 if operate_on_w_m:
-                    w_m[i,j,k] = w[int(modl[i,j,k])-1]
+                    w_m[i,j,k] = w[0][x]
+    # Print the time of the end of this execution
+    print("Time of end of execution: ", time.time()-begin_time)
     # Calculate inverse of k1 for use in solver
     inv_k1 = 1/k1
     
@@ -133,10 +144,10 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     # Solver
     # ----------------------------------------
     
-    TicToc = ttg.TicTocGenerator() # create an instance of the TicTocGen generator
-    tic = ttg.tic
-    toc = ttg.toc
-    tic()   # Starts the stopwatch
+    # TicToc = ttg.TicTocGenerator() # create an instance of the TicTocGen generator
+    # tic = ttg.tic
+    # toc = ttg.toc
+    # tic()   # Starts the stopwatch
     # h = 0 # Initiate waitbar MAY NOT HAVE FUNCTIONALITY
     c_old = 1    # counter
     # Preallocate temperature arrays
@@ -178,18 +189,22 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             print("Could not open file! Please close Excel!")
             # stop execution of the program
             raise 
-        TEMPS = 0 #dummy value to return
+        Temps = 0 #dummy value to return
     else:
-        TEMPS = np.zeros((nx,ny,nz,nntt),dtype=np.float32)   # Final exported array
-        TEMPS[:,:,:,0] = T0
+        Temps = np.zeros((nx,ny,nz,nntt),dtype=np.float32)   # Final exported array
+        Temps[:,:,:,0] = T0
 
-    for mm in range(nFZ):                                # Run Model for each focal zone location
+    for mm in range(len(nFZ)):                                # Run Model for each focal zone location
         # Generate the PowerOn vector for each focal zone location (includes heating and cooling time)
-        nt = math.ceil(HT[mm]/dt)+math.ceil(CT[mm]/dt) # Number of time steps at FZ location mm
+        nt = np.ceil(HT[mm]/dt)+np.ceil(CT[mm]/dt) # Number of time steps at FZ location mm
+        nt = int(nt)
         PowerOn = np.zeros(nt)                # Zero indicates no power.
-        PowerOn[0:math.ceil(HT[mm]/dt)] = 1       # 1 indicates power on.
-        Qmm = Q[:,:,:,mm]                 # Power deposited at FZ location mm
-        for nn in range(nt):                             # Run Model for each timestep at FZ location mm
+        z = np.ceil(HT[mm]/dt)
+        z = int(z)
+        PowerOn[0:z] = 1       # 1 indicates power on.
+        Qmm = np.zeros((nx,ny,nz,len(nFZ)),dtype=np.float32) # Power deposited at FZ location mm
+        Qmm[:,:,:,:] = Q[:,:,:]                 # Power deposited at FZ location mm
+        for nn in range(len(nt)):                             # Run Model for each timestep at FZ location mm
             cc = c_old                           # Counter starts at 1 (line 120)
             c_old = cc+1                         # Counter increments by 1 each iteration
             # waitbar(cc/NT,h)                   # Increment the waitbar
@@ -229,7 +244,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
                 if use_file:
                     fid.write(T_new[1:j,1:k_var,1:l])
                 else:
-                    TEMPS[:,:,:,cc/timeratio] = T_new[1:j,1:k_var,1:l]
+                    Temps[:,:,:,cc/timeratio] = T_new[1:j,1:k_var,1:l]
         if use_file:
             fid.close()
     #create list of items to be deleted.
@@ -238,6 +253,6 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     #delete items
     for item in del_items:
         del item
-    toc()   # Stops the stopwatch
+    # toc()   # Stops the stopwatch
 
-    return TEMPS, time
+    return Temps, time_vector
