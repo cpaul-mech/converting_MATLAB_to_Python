@@ -27,10 +27,11 @@ plot(time,squeeze(TEMPS(71,71,60,:)))
 imagesc(squeeze(TEMPS(71,:,:,11)),[0, 12])
 """
 import control.matlab as control
+import matplotlib.pyplot as plt
 matlab_data = sio.loadmat('DemoModel.mat')
 Modl = matlab_data['Modl']
 #Slice Modl to make it much smaller. Lets try 10x10x10
-Modl = Modl[0:10,0:10,0:10]
+# Modl = Modl[0:5,0:5,0:5]
 Vox = matlab_data['Vox']
 Vox = Vox/1000
 
@@ -47,7 +48,7 @@ rho = matlab_data['Props_rho']
 c = matlab_data['Props_rho']
 Q_s = matlab_data['Q']
 # we also need to slice Q
-Q_s = Q_s[0:10,0:10,0:10]
+# Q_s = Q_s[0:5,0:5,0:5]
 cp = matlab_data['Props_cp']
 k = matlab_data['Props_k']
 w = matlab_data['Props_w']
@@ -56,4 +57,11 @@ GF = matlab_data['GF']
 
 
 (Temps, function_time) = calc_TEMPS_v045(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc)
+# now convert the following matlab plotting into python
+# % plot(time,squeeze(TEMPS(71,71,60,:)))
+# % %TO slice the model and look at temp distribution use the command imagesc()
+# % imagesc(squeeze(TEMPS(71,:,:,11)),[0, 12])
+
+plt.plot(function_time, np.squeeze(Temps[70,70,60,:]))
+plt.show()
 

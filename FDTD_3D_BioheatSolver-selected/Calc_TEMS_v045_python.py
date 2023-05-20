@@ -71,10 +71,10 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     b = dx/dz                       # Dimensionless Increment
     nx,ny,nz = modl.shape           # Itentify number of voxels.
     t_final = np.sum(HT) + np.sum(CT)     # Total treatment time to be modeled. [s].
-    time_vector = np.arange(0,t_final,tacq) # Time vector
+    time_vector = np.arange(0,t_final+1,tacq) # Time vector
     NT = t_final/dt                 # Total number of FD time steps
     nntt = len(time_vector)                # Total number of temperature distributions in time to save
-    timeratio = tacq/dt             # NOTE: tacq/dt should be an integer
+    timeratio = int(tacq/dt)             # NOTE: tacq/dt should be an integer
 
     # Calculate the maximum time step for stability of the thermal model
     w_max = w.max()               # Required parameters for max time step calculation
@@ -130,10 +130,11 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     inv_k7k1 = 1/np.roll(k1,-1,axis=2) + inv_k1
 
     Coeff1 = 2*dt/(rho_cp*dx**2)                # (m*degC/W)
+    x_dir_cond = 1/(inv_k2k1)+1/(inv_k3k1)
     k8 = (1/(inv_k2k1)+1/(inv_k3k1)          # x direction conduction (W/m/degC)
         +a**2/(inv_k4k1)+a**2/(inv_k5k1)    # y direction conduction (W/m/degC)
         +b**2/(inv_k6k1)+b**2/(inv_k7k1))     # z direction conduction (W/m/degC)
-    Coeff2 = (1-(w_m*dt)/rho_m-2*dt/(rho_cp*dx**2)*k8) # Changes associated with this voxel's old temperature (Unitless)
+    Coeff2 = (1-(w_m*dt)/rho_m-2*dt/(rho_cp* dx**2)*k8) # Changes associated with this voxel's old temperature (Unitless)
     Perf=(w_m*dt*Tb)/rho_m # Precalculate perfusion term (degC)
 
     j = nx+1                                 # second to last voxel in direction X #otherwise we can change this to nx+2 to account for python list slicing not including final option.
@@ -194,7 +195,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         Temps = np.zeros((nx,ny,nz,nntt),dtype=np.float32)   # Final exported array
         Temps[:,:,:,0] = T0
 
-    for mm in range(len(nFZ)):                                # Run Model for each focal zone location
+    for mm in range(int(nFZ)):                                # Run Model for each focal zone location
         # Generate the PowerOn vector for each focal zone location (includes heating and cooling time)
         nt = np.ceil(HT[mm]/dt)+np.ceil(CT[mm]/dt) # Number of time steps at FZ location mm
         nt = int(nt)
@@ -202,9 +203,12 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         z = np.ceil(HT[mm]/dt)
         z = int(z)
         PowerOn[0:z] = 1       # 1 indicates power on.
-        Qmm = np.zeros((nx,ny,nz,len(nFZ)),dtype=np.float32) # Power deposited at FZ location mm
-        Qmm[:,:,:,:] = Q[:,:,:]                 # Power deposited at FZ location mm
-        for nn in range(len(nt)):                             # Run Model for each timestep at FZ location mm
+        if mm>0:
+            Qmm = np.zeros((nx,ny,nz,mm+1),dtype=np.float32) # Power deposited at FZ location mm
+            Qmm[:,:,:,:] = Q[:,:,:,mm+1]
+        else:
+            Qmm = Q
+        for nn in range(nt):                             # Run Model for each timestep at FZ location mm
             cc = c_old                           # Counter starts at 1 (line 120)
             c_old = cc+1                         # Counter increments by 1 each iteration
             # waitbar(cc/NT,h)                   # Increment the waitbar
@@ -216,10 +220,11 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             t6 = np.roll(T_new,1,axis=2)
             t7 = np.roll(T_new,-1,axis=2)
             # Solve for Temperature of Internal Nodes  (TEMPS_new = New Temperature)
-            ###### NEED TO VERIFY THAT LIST SLICING IN PYTHON WORKS IN THIS INSTANCE EQUIVALENTLY TO MATLAB. see line 290 ######
+            x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)
+            y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1))
+            z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1))
             T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                                      # Conduction associated with neighboring voxels
-                                                (t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)      # x direction conduction 
-                                                +a**2*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1))      # y direction conduction
+                                                (x_dir_cond+y_dir_cond+z_dir_cond                                        # Conduction associated with neighboring voxels
                                                 +Perf                                                          # Perfusion associated with difference between baseline and Tb temperature
                                                 +Qmm*PowerOn[nn]*dt/rho_cp                                   # FUS power
                                                 +T_old[1:j,1:k_var,1:l]*Coeff2))                                       # Temperature changes associated with this voxel's old temperature
@@ -244,7 +249,8 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
                 if use_file:
                     fid.write(T_new[1:j,1:k_var,1:l])
                 else:
-                    Temps[:,:,:,cc/timeratio] = T_new[1:j,1:k_var,1:l]
+                    index = int(cc/timeratio)
+                    Temps[:,:,:,index] = T_new[1:j,1:k_var,1:l]
         if use_file:
             fid.close()
     #create list of items to be deleted.
