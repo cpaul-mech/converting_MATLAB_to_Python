@@ -57,11 +57,7 @@ GF = matlab_data['GF']
 
 
 (Temps, function_time) = calc_TEMPS_v045(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc)
-# now convert the following matlab plotting into python
-# % plot(time,squeeze(TEMPS(71,71,60,:)))
-# % %TO slice the model and look at temp distribution use the command imagesc()
-# % imagesc(squeeze(TEMPS(71,:,:,11)),[0, 12])
 
-plt.plot(function_time, np.squeeze(Temps[70,70,60,:]))
-plt.show()
+# plt.plot(function_time, np.squeeze(Temps[70,70,60,:]))
+# plt.show()
 

@@ -77,7 +77,7 @@ end
 % ----------------------------------------
 k1=zeros(nX,nY,nZ,'single');
 
-k1(:,:,:)=k(Modl(:,:,:));
+k1(:,:,:)=k(Modl(:,:,:)); %No diff here.
 inv_k1 = 1/k1;
 rho_m=zeros(nX,nY,nZ,'single');
 rho_m(:,:,:)=rho(Modl(:,:,:));
@@ -105,7 +105,7 @@ inv_k7k1= 1/circshift(k1,[0 0 -1 0]) + inv_k1;
 Coeff1 = 2*dt/(rho_cp*dx^2);                % (m*degC/W)
 k8 = (1/(inv_k2k1)+1/(inv_k3k1)...          % x direction conduction (W/m/degC)
        +A^2/(inv_k4k1)+A^2/(inv_k5k1)...    % y direction conduction (W/m/degC)
-       +B^2/(inv_k6k1)+B^2/(inv_k7k1));     % z direction conduction (W/m/degC)
+       +B^2/(inv_k6k1)+B^2/(inv_k7k1));     % z direction conduction (W/m/degC) No diff here either.
 Coeff2 = (1-(w_m*dt)./rho_m-2*dt/(rho_cp*dx^2).*k8); % Changes associated with this voxel's old temperature (Unitless)
 Perf=(w_m*dt*Tb)./rho_m; % Precalculate perfusion term (degC)
 
@@ -219,7 +219,8 @@ end
 if use_file
     fclose(fid)
 end
-
+% Save some variables to a .mat file
+save('variables_to_check.mat',"TEMPS","inv_k1","inv_k5k1","rho_cp","k1","k8")
 clear  T_new T_old T2 T3 T4 T5 T6 T7 k1 k2 k3 k4 k5 k6 k7 w_m rho_m cp_m rho_cp lambda
 toc   % Stops the stopwatch
 close(h);

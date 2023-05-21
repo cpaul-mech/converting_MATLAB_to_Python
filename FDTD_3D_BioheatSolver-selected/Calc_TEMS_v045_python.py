@@ -140,7 +140,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     j = nx+1                                 # second to last voxel in direction X #otherwise we can change this to nx+2 to account for python list slicing not including final option.
     k_var = ny+1                                 # second to last voxel in direction Y
     l = nz+1                                 # second to last voxel in direction Z
-
+    ex = k8[0:6,0:6,0:6] #example of k8
     # ----------------------------------------
     # Solver
     # ----------------------------------------
@@ -172,7 +172,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         T_old[:,:,0] = T_old[:,:,1]-(T_old[:,:,2]-T_old[:,:,1])
         T_old[:,:,-1] = T_old[:,:,-2]-(T_old[:,:,-3]-T_old[:,:,-2])
     
-    T_new = T_old                            # Define new temperatures
+    T_new = T_old.copy()                          # Define new temperatures
 
     # Initial temperature profile
     use_file = 0
@@ -254,11 +254,12 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         if use_file:
             fid.close()
     #create list of items to be deleted.
-    k2,k3,k4,k5,k6,k7 = 0,0,0,0,0,0
-    del_items = [T_new, T_old, t2, t3, t4, t5, t6, t7, k1, k2, k3, k4, k5, k6, k7, w_m, rho_m, cp_m, rho_cp]
-    #delete items
-    for item in del_items:
-        del item
+    # k2,k3,k4,k5,k6,k7 = 0,0,0,0,0,0
+    # del_items = [T_new, T_old, t2, t3, t4, t5, t6, t7, k1, k2, k3, k4, k5, k6, k7, w_m, rho_m, cp_m, rho_cp]
+    # #delete items
+    # for item in del_items:
+    #     del item
     # toc()   # Stops the stopwatch
-
+    # save the Temps, inv_k1, inv_k5k1, rho_cp, k1, and k8 variables to a .mat file
+    sio.savemat('py_vars_to_check.mat', {'TEMPS':Temps, 'inv_k1':inv_k1, 'inv_k5k1':inv_k5k1, 'rho_cp':rho_cp, 'k1':k1, 'k8':k8})
     return Temps, time_vector

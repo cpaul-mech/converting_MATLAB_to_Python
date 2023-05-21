@@ -20,9 +20,11 @@ BC = 0; %adiabatic, no energy escapes out of the edges
 % the file is optional. 
 % Q = Q(1:4,1:4,1:4);
 nFZ= 1;
+% Qmm(:,:,:) = Q(:,:,:,1);
 
 [TEMPS,time]=Calc_TEMPS_v04S(Modl,T0,Vox,dt,HT,CT,Props_rho,Props_k,Props_cp,wType,Props_w,Q,nFZ,tacq,Tb,BC);
 
+% TEMPS(1:5,1:5,1:5,1:5)
 plot(time,squeeze(TEMPS(71,71,60,:)))
 % %TO slice the model and look at temp distribution use the command imagesc()
 % imagesc(squeeze(TEMPS(71,:,:,11)),[0, 12])
