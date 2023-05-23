@@ -57,7 +57,7 @@ GF = matlab_data['GF']
 
 
 (Temps, function_time) = calc_TEMPS_v045(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc)
-
-# plt.plot(function_time, np.squeeze(Temps[70,70,60,:]))
-# plt.show()
+# sio.savemat('py_vars_to_check.mat', {'time': function_time, 'TEMPS':Temps})
+plt.plot(function_time, np.squeeze(Temps[70,70,59,:]))
+plt.show()
 

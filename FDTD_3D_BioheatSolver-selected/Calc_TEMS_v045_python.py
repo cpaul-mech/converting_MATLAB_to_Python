@@ -64,6 +64,7 @@ import math
 # import tic_toc_generator as ttg
 import time
 # matlab_data = sio.loadmat('DemoModel.mat')
+from tqdm import tqdm
 
 def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
     dx,dy,dz = Vox[0][0],Vox[0][1],Vox[0][2] # Voxel dimensions
@@ -137,10 +138,10 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     Coeff2 = (1-(w_m*dt)/rho_m-2*dt/(rho_cp* dx**2)*k8) # Changes associated with this voxel's old temperature (Unitless)
     Perf=(w_m*dt*Tb)/rho_m # Precalculate perfusion term (degC)
 
-    j = nx+1                                 # second to last voxel in direction X #otherwise we can change this to nx+2 to account for python list slicing not including final option.
-    k_var = ny+1                                 # second to last voxel in direction Y
-    l = nz+1                                 # second to last voxel in direction Z
-    ex = k8[0:6,0:6,0:6] #example of k8
+    j = -1                                 # second to last voxel in direction X #otherwise we can change this to nx+2 to account for python list slicing not including final option.
+    k_var = -1                                 # second to last voxel in direction Y
+    l = -1                                 # second to last voxel in direction Z
+    # ex = k8[0:6,0:6,0:6] #example of k8
     # ----------------------------------------
     # Solver
     # ----------------------------------------
@@ -154,7 +155,8 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     # Preallocate temperature arrays
     T_old = np.zeros((nx+2,ny+2,nz+2),dtype=np.float32)   # Define Old Temperatures ***NOTE: Expanded by 2 voxels in x y and z direction
     # Initial Condition
-    T_old[1:j,1:k_var,1:l] = T0              # Fill in initial condition temperatures.
+    
+    T_old[1:j,1:k_var,1:l] = T0.copy()              # Fill in initial condition temperatures.
 
     # Boundary Condition
     if BC==1:                           # Adiabatic boundary condition (zero-slope)
@@ -194,12 +196,12 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     else:
         Temps = np.zeros((nx,ny,nz,nntt),dtype=np.float32)   # Final exported array
         Temps[:,:,:,0] = T0
-
+    # sio.savemat('py_vars_to_check.mat', {'T0':T0, 'TEMPS':Temps})
     for mm in range(int(nFZ)):                                # Run Model for each focal zone location
         # Generate the PowerOn vector for each focal zone location (includes heating and cooling time)
         nt = np.ceil(HT[mm]/dt)+np.ceil(CT[mm]/dt) # Number of time steps at FZ location mm
         nt = int(nt)
-        PowerOn = np.zeros(nt)                # Zero indicates no power.
+        PowerOn = np.zeros((nt,1))                # Zero indicates no power.
         z = np.ceil(HT[mm]/dt)
         z = int(z)
         PowerOn[0:z] = 1       # 1 indicates power on.
@@ -208,7 +210,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             Qmm[:,:,:,:] = Q[:,:,:,mm+1]
         else:
             Qmm = Q
-        for nn in range(nt):                             # Run Model for each timestep at FZ location mm
+        for nn in tqdm(range(1), desc='Running model for each timestep'):                             # Run Model for each timestep at FZ location mm
             cc = c_old                           # Counter starts at 1 (line 120)
             c_old = cc+1                         # Counter increments by 1 each iteration
             # waitbar(cc/NT,h)                   # Increment the waitbar
@@ -219,15 +221,22 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             t5 = np.roll(T_new,-1,axis=1)
             t6 = np.roll(T_new,1,axis=2)
             t7 = np.roll(T_new,-1,axis=2)
+            
             # Solve for Temperature of Internal Nodes  (TEMPS_new = New Temperature)
             x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)
             y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1))
             z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1))
-            T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                                      # Conduction associated with neighboring voxels
-                                                (x_dir_cond+y_dir_cond+z_dir_cond                                        # Conduction associated with neighboring voxels
-                                                +Perf                                                          # Perfusion associated with difference between baseline and Tb temperature
-                                                +Qmm*PowerOn[nn]*dt/rho_cp                                   # FUS power
-                                                +T_old[1:j,1:k_var,1:l]*Coeff2))                                       # Temperature changes associated with this voxel's old temperature
+            sample = Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2)
+            # sample = sample.squeeze()
+            T_new[1:j,1:k_var,1:l] = sample.copy()
+            # T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                                      # Conduction associated with neighboring voxels
+            #                                     (x_dir_cond+y_dir_cond+z_dir_cond                                        # Conduction associated with neighboring voxels
+            #                                     +Perf                                                          # Perfusion associated with difference between baseline and Tb temperature
+            #                                     +Qmm*PowerOn[nn]*dt/rho_cp                                   # FUS power
+            #                                     +T_old[1:j,1:k_var,1:l]*Coeff2))                                       # Temperature changes associated with this voxel's old temperature
+            if nn == 0:
+                sample= Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2)
+                sio.savemat('py_vars_to_check.mat', {'x_dir_cond':x_dir_cond, 'y_dir_cond':y_dir_cond, 'z_dir_cond':z_dir_cond, 'Perf':Perf, 'Qmm':Qmm, 'PowerOn':PowerOn, 'dt':dt, 'rho_cp':rho_cp, 'Coeff2':Coeff2, 'T_new':T_new, 'Coeff1':Coeff1, 'sample':sample})
             # Make recently calculated temperature (T_new) the old temperature (T_old) for the next calculation
             T_old[1:j,1:k_var,1:l] = T_new[1:j,1:k_var,1:l]
             if BC==1:                           # Adiabatic Boundary
@@ -260,6 +269,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     # for item in del_items:
     #     del item
     # toc()   # Stops the stopwatch
-    # save the Temps, inv_k1, inv_k5k1, rho_cp, k1, and k8 variables to a .mat file
-    sio.savemat('py_vars_to_check.mat', {'TEMPS':Temps, 'inv_k1':inv_k1, 'inv_k5k1':inv_k5k1, 'rho_cp':rho_cp, 'k1':k1, 'k8':k8})
+    # save the c_old and T_new variables to a .mat file
+    # sio.savemat('py_vars_to_check.mat', {'c_old':c_old, 'T_new':T_new, 'PowerOn': PowerOn, 'T7':t7, 'time': time_vector, 'TEMPS':Temps})
+
     return Temps, time_vector

@@ -1,13 +1,13 @@
 # This python file will be used to check differences between variables in the matlab code and the python code.
-
+from tqdm import tqdm
 import scipy.io as sio
 import numpy as np
 import matplotlib.pyplot as plt
 
 matlab_data = sio.loadmat('variables_to_check.mat')
-print(matlab_data.keys())
+print('Matlab Data', matlab_data.keys())
 python_data = sio.loadmat('py_vars_to_check.mat')
-print(python_data.keys())
+print('python data', python_data.keys())
 diff_dict = {}
 
 def variable_checker(var1, var2, key_name):
@@ -24,23 +24,16 @@ def variable_checker(var1, var2, key_name):
     if size_tuple == size_tuple2:
         differences = 0
         print(f'The shapes of the {key_name} variables: {var1.shape} are the same.')
-        #reshape both arrays to 1D arrays
-        var1 = var1.reshape(-1)
-        var2 = var2.reshape(-1)
-        m = iter(var1)
-        p = iter(var2)
-        while(True):
-            try:
-                m_next = next(m)
-                p_next = next(p)
-                if abs(m_next - p_next) < diff_value:
-                    pass
-                else:
-                    differences += 1
-                    # print(f'The values at {m_next} are not the same.')
-                    # print("The difference is: ", abs(m_next - p_next))
-            except StopIteration:
-                break
+        # subtract the two arrays and iterate through the array checking for differences greater than the diff_value
+        diff_array = var1 - var2
+        diff_array = diff_array.reshape(-1)
+        for i in tqdm(range(len(diff_array)), desc=f'Checking {key_name}'):
+            if abs(diff_array[i]) < diff_value:
+                pass
+            else:
+                differences += 1
+                # print(f'The values at {m_next} are not the same.')
+                # print("The difference is: ", abs(m_next - p_next))
     else:
         print(f'The shapes of the {key_name} variables are not the same.')
         print(f'The shape of the matlab variable is: {size_tuple}')

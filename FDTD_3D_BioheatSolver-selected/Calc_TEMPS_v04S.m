@@ -158,6 +158,7 @@ if exist('temp_file', 'var')
 else
     TEMPS=zeros(nX,nY,nZ,nntt,'single');    % Final exported array
     TEMPS(:,:,:,1) = T0; 
+% save('variables_to_check.mat',"TEMPS","T0")
 end
 
 
@@ -168,10 +169,11 @@ for mm=1:nFZ                                % Run Model for each focal zone loca
         PowerOn=zeros(nt,1);                % Zero indicates no power.
         PowerOn(1:ceil(HT(mm)/dt))=1;       % 1 indicates power on. 
     Qmm(:,:,:)=Q(:,:,:,mm);                 % Power deposited at FZ location mm %Issue: What is this line of code meant to do?
-    for nn=1:nt                             % Run Model for each timestep at FZ location mm
+    for nn=1:2                             % Run Model for each timestep at FZ location mm
         cc=c_old;                           % Counter starts at 1 (line 120)
         c_old=cc+1;                         % Counter increments by 1 each iteration
-        waitbar(cc/NT,h);                   % Increment the waitbar
+        waitbar(cc/NT,h); % Increment the waitbar
+        
         % Shift Temperatures for use in solver
             T2 = circshift(T_new,[1 0 0 0]);
             T3 = circshift(T_new,[-1 0 0 0]);
@@ -180,14 +182,20 @@ for mm=1:nFZ                                % Run Model for each focal zone loca
             T6 = circshift(T_new,[0 0 1 0]);
             T7 = circshift(T_new,[0 0 -1 0]);
         % Solve for Temperature of Internal Nodes  (TEMPS_new = New Temperature)
-            T_new(2:J,2:K,2:L) = squeeze (Coeff1.*...                                                       % Conduction associated with neighboring voxels
-                                                    (T2(2:J,2:K,2:L)./(inv_k2k1)+T3(2:J,2:K,2:L)./(inv_k3k1)...       % x direction conduction
-                                               +A^2*(T4(2:J,2:K,2:L)./(inv_k4k1)+T5(2:J,2:K,2:L)./(inv_k5k1))...      % y direction conduction
-                                               +B^2*(T6(2:J,2:K,2:L)./(inv_k6k1)+T7(2:J,2:K,2:L)./(inv_k7k1)))...     % z direction conduction
+            x_dir_cond = T2(2:J,2:K,2:L)./(inv_k2k1)+T3(2:J,2:K,2:L)./(inv_k3k1);
+            y_dir_cond = A^2*(T4(2:J,2:K,2:L)./(inv_k4k1)+T5(2:J,2:K,2:L)./(inv_k5k1));
+            z_dir_cond = B^2*(T6(2:J,2:K,2:L)./(inv_k6k1)+T7(2:J,2:K,2:L)./(inv_k7k1));
+            T_new(2:J,2:K,2:L) = squeeze(Coeff1.*(...                                                       % Conduction associated with neighboring voxels
+                                                    x_dir_cond...       % x direction conduction
+                                               +y_dir_cond...      % y direction conduction
+                                               +z_dir_cond)...     % z direction conduction
                                           +Perf...                                                          % Perfusion associated with difference between baseline and Tb temperature
                                           +Qmm*PowerOn(nn)*dt./rho_cp...                                    % FUS power
                                           +T_old(2:J,2:K,2:L).*Coeff2);                                         % Temperature changes associated with this voxel's old temperature
-                                                        
+            if nn ==1
+                sample = Coeff1.*(x_dir_cond+y_dir_cond+z_dir_cond+Perf+Qmm*PowerOn(nn)*dt./rho_cp + T_old(2:J,2:K,2:L).*Coeff2);
+                save('variables_to_check.mat','T_new',"x_dir_cond","y_dir_cond","Perf","Qmm","PowerOn","Coeff2","rho_cp","dt","sample")
+            end                                           
         % Make recently calculated temperature (T_new) the old temperature (T_old) for the next calculation
             T_old(2:J,2:K,2:L)= T_new(2:J,2:K,2:L);
             if BC==1;                           % Adiabatic Boundary
@@ -213,6 +221,7 @@ for mm=1:nFZ                                % Run Model for each focal zone loca
                     TEMPS(:,:,:,cc/timeratio+1)=T_new(2:J,2:K,2:L);
                 end
             end
+            
     end
 end
 
@@ -220,7 +229,7 @@ if use_file
     fclose(fid)
 end
 % Save some variables to a .mat file
-save('variables_to_check.mat',"TEMPS","inv_k1","inv_k5k1","rho_cp","k1","k8")
+% save('variables_to_check.mat',"c_old","T_new","PowerOn","T7", "time","TEMPS")
 clear  T_new T_old T2 T3 T4 T5 T6 T7 k1 k2 k3 k4 k5 k6 k7 w_m rho_m cp_m rho_cp lambda
 toc   % Stops the stopwatch
 close(h);
