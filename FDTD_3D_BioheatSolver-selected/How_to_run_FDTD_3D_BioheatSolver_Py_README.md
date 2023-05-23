@@ -3,7 +3,8 @@
 ## Steps: 
     1. If you have conda or python installed, open up your editor of choice and create a new folder/project.
     
-    2. Create a virtual environment in your project folder. This is important because some of the pip packages can be irritating and incompatible with other packages for some reason.
+    2. Create a virtual environment in your project folder. This is important because some of the pip packages 
+    can be irritating and incompatible with other packages for some reason.
     
     3. Activate your virtual environment and install the following packages: 
         - numpy
@@ -13,7 +14,8 @@
     
     4. Either clone the github repository and open up the FDTD_3D_BioheatSolver-selected in the current workspace. 
     
-    5. Or, download the experimental_TEMPS_func_run.py file and the Calc_TEMPS_v045_python.py file and place them in your project folder.
+    5. Or, download the experimental_TEMPS_func_run.py file and the Calc_TEMPS_v045_python.py file and place them 
+    in your project folder.
     
     6. Run the experimental_TEMPS_func_run.py file.
     
