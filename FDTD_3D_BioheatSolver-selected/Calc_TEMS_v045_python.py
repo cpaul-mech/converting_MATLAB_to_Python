@@ -215,8 +215,8 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)
             y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1))
             z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1))
-            sample = Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2)
-            # sample = sample.squeeze()
+            sample = Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+(Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2)
+            sample = sample.squeeze() # 
             T_new[1:j,1:k_var,1:l] = sample.copy()
             # T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                                      # Conduction associated with neighboring voxels
             #                                     (x_dir_cond+y_dir_cond+z_dir_cond                                        # Conduction associated with neighboring voxels
@@ -224,8 +224,9 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             #                                     +Qmm*PowerOn[nn]*dt/rho_cp                                   # FUS power
             #                                     +T_old[1:j,1:k_var,1:l]*Coeff2))                                       # Temperature changes associated with this voxel's old temperature
             if nn == 0:
-                sample= Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2)
+                sample= Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2
                 sio.savemat('py_vars_to_check.mat', {'x_dir_cond':x_dir_cond, 'y_dir_cond':y_dir_cond, 'z_dir_cond':z_dir_cond, 'Perf':Perf, 'Qmm':Qmm, 'PowerOn':PowerOn, 'dt':dt, 'rho_cp':rho_cp, 'Coeff2':Coeff2, 'T_new':T_new, 'Coeff1':Coeff1, 'sample':sample})
+            break
             # Make recently calculated temperature (T_new) the old temperature (T_old) for the next calculation
             T_old[1:j,1:k_var,1:l] = T_new[1:j,1:k_var,1:l]
             if BC==1:                           # Adiabatic Boundary

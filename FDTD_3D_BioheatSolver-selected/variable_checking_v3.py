@@ -19,11 +19,10 @@ def variable_checker(var1, var2, key_name):
     # load all the variables from each file
     diff_value = 1e-6
     #now compare the two variables with a for loop and a tolerance of 1e-6
-    size_tuple = var1.shape
-    size_tuple2 = var2.shape
-    if size_tuple == size_tuple2:
+    var1_Shape = var1.shape
+    var2_shape = var2.shape
+    if var1_Shape == var2_shape:
         differences = 0
-        print(f'The shapes of the {key_name} variables: {var1.shape} are the same.')
         # subtract the two arrays and iterate through the array checking for differences greater than the diff_value
         diff_array = var1 - var2
         diff_array = diff_array.reshape(-1)
@@ -35,15 +34,15 @@ def variable_checker(var1, var2, key_name):
                 # print(f'The values at {m_next} are not the same.')
                 # print("The difference is: ", abs(m_next - p_next))
     else:
-        print(f'The shapes of the {key_name} variables are not the same.')
-        print(f'The shape of the matlab variable is: {size_tuple}')
-        print(f'The shape of the python variable is: {size_tuple2}')
-        return 'Not same shape.'
+        # print(f'The shapes of the {key_name} variables are not the same.')
+        # print(f'The shape of the matlab variable is: {size_tuple}')
+        # print(f'The shape of the python variable is: {size_tuple2}')
+        return ['Not same shape.', f'matlab shape: {var1_Shape}', f'python shape: {var2_shape}']
     #depending on the length of the size tuple, we need to use a different for loop.
 
     print("The number of differences is: ", differences) # the number of differences here was 5398548. That's way too many.
 
-    return differences
+    return [f'diff: {differences}', f'shape: {var1_Shape}']
 
 for key in matlab_data.keys():
     intro_keys = ['__header__', '__version__', '__globals__']
