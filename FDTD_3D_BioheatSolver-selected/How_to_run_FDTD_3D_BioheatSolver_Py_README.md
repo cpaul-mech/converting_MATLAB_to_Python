@@ -6,7 +6,7 @@
     2. Create a virtual environment in your project folder. This is important because some of the pip packages 
     can be irritating and incompatible with other packages for some reason.
     
-    3. Activate your virtual environment and install the following packages: 
+    3. Activate your virtual environment and install (typically with pip install [package_name]) the following packages: 
         - numpy
         - matplotlib
         - scipy
