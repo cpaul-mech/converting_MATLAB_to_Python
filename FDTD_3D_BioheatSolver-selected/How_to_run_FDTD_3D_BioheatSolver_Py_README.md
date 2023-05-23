@@ -1,4 +1,4 @@
-# How to download and run the FDTD_3D_BioHeatSolver Converted code in your python ide of choice. 
+# How to download and run the FDTD_3D_BioHeatSolver converted code in your python ide of choice. 
 
 ## Steps: 
     1. If you have conda or python installed, open up your editor of choice and create a new folder/project.
