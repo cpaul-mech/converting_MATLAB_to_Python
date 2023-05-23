@@ -2,7 +2,7 @@
 from tqdm import tqdm
 import scipy.io as sio
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 matlab_data = sio.loadmat('variables_to_check.mat')
 print('Matlab Data', matlab_data.keys())
@@ -34,13 +34,9 @@ def variable_checker(var1, var2, key_name):
                 # print(f'The values at {m_next} are not the same.')
                 # print("The difference is: ", abs(m_next - p_next))
     else:
-        # print(f'The shapes of the {key_name} variables are not the same.')
-        # print(f'The shape of the matlab variable is: {size_tuple}')
-        # print(f'The shape of the python variable is: {size_tuple2}')
         return ['Not same shape.', f'matlab shape: {var1_Shape}', f'python shape: {var2_shape}']
-    #depending on the length of the size tuple, we need to use a different for loop.
-
-    print("The number of differences is: ", differences) # the number of differences here was 5398548. That's way too many.
+    
+    print("The number of differences is: ", differences) 
 
     return [f'diff: {differences}', f'shape: {var1_Shape}']
 
