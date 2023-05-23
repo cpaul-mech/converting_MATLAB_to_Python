@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.io as sio
 from Calc_TEMS_v045_python import calc_TEMPS_v045
-import control.matlab as control
 import matplotlib.pyplot as plt
 
 matlab_data = sio.loadmat('DemoModel.mat')
