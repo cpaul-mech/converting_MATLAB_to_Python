@@ -218,7 +218,7 @@ end
 if use_file
     fclose(fid)
 end
-
+save('variables_to_check.mat',"c_old","TEMPS","PowerOn","T_new","T7","time","k8")
 clear  T_new T_old T2 T3 T4 T5 T6 T7 k1 k2 k3 k4 k5 k6 k7 w_m rho_m cp_m rho_cp lambda
 toc   % Stops the stopwatch
 close(h);
