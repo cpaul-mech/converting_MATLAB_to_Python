@@ -58,11 +58,6 @@
 
 import numpy as np
 import scipy.io as sio
-# import matplotlib.pyplot as plt
-# import control as ct
-import math
-# import tic_toc_generator as ttg
-import time
 # matlab_data = sio.loadmat('DemoModel.mat')
 from tqdm import tqdm
 
@@ -100,11 +95,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         w_m = w
         del w
     # Use a for loop to fill in matrices with appropriate values from the input vectors.
-    print("Filling in matrices with appropriate values from the input vectors.")
-    # Print the time of the beginning of this execution
-    begin_time = time.time()
-    print("Time of beginning of execution: ", begin_time)
-    for i in range(nx):
+    for i in tqdm(range(nx),desc='Filling in matrices k1, rho, cp, and w_m'):
         for j in range(ny):
             for k in range(nz):
                 x = modl[i,j,k]
@@ -115,8 +106,6 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
                 cp_m[i,j,k] = cp[0][x]
                 if operate_on_w_m:
                     w_m[i,j,k] = w[0][x]
-    # Print the time of the end of this execution
-    print("Time of end of execution: ", time.time()-begin_time)
     # Calculate inverse of k1 for use in solver
     inv_k1 = 1/k1
     
