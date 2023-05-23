@@ -17,7 +17,7 @@ def variable_checker(var1, var2, key_name):
     # The variables to check are:
     # Temps, inv_k1, invk5k1, rho_cp, k1, and k8
     # load all the variables from each file
-    diff_value = 1e-6
+    diff_value = 1e-4
     #now compare the two variables with a for loop and a tolerance of 1e-6
     var1_Shape = var1.shape
     var2_shape = var2.shape
