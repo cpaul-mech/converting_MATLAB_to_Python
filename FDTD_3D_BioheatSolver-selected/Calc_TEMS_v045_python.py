@@ -55,7 +55,6 @@
 #                                      constant matrices and added option to write to a file (see
 #                                      helper function read_temp_file.m)
 
-
 import numpy as np
 import scipy.io as sio
 # matlab_data = sio.loadmat('DemoModel.mat')
@@ -207,10 +206,10 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             t7 = np.roll(T_new,-1,axis=2)
             
             # Solve for Temperature of Internal Nodes  (TEMPS_new = New Temperature)
-            x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)
-            y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1))
-            z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1))
-            sample = Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2
+            x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1) # x direction conduction (W/m/degC)
+            y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1)) # y direction conduction (W/m/degC)
+            z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1)) # z direction conduction (W/m/degC)
+            sample = Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2 # Temperature changes associated with this voxel's old temperature (degC)
             sample = sample.squeeze() 
             T_new[1:j,1:k_var,1:l] = sample.copy()
             # T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                                      # Conduction associated with neighboring voxels
@@ -246,8 +245,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             fid.close()
     sio.savemat('py_vars_to_check.mat', {'c_old':c_old, 'T_new':T_new, 'PowerOn': PowerOn, 'T7':t7, 'time': time_vector, 'TEMPS':Temps,'k8':k8})
     # create list of items to be deleted.
-    k2,k3,k4,k5,k6,k7 = 0,0,0,0,0,0
-    del_items = [T_new, T_old, t2, t3, t4, t5, t6, t7, k1, k2, k3, k4, k5, k6, k7, w_m, rho_m, cp_m, rho_cp]
+    del_items = [T_new, T_old, t2, t3, t4, t5, t6, t7, k1, w_m, rho_m, cp_m, rho_cp]
     #delete items
     for item in del_items:
         del item
