@@ -4,7 +4,7 @@ import scipy.io as sio
 import numpy as np
 
 
-matlab_data = sio.loadmat('variables_to_check.mat')
+matlab_data = sio.loadmat('mat_vars_to_check.mat')
 print('Matlab Data', matlab_data.keys())
 python_data = sio.loadmat('py_vars_to_check.mat')
 print('python data', python_data.keys())
