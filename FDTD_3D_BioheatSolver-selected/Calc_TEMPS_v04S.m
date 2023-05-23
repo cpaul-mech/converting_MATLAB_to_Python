@@ -30,8 +30,7 @@
 %                       For data sets which involve a large number of time
 %                       points (i.e. enough that all the memory will be
 %                       consumed), writing to a file will prevent memory
-%                       thrashing and speed the program up. Generally
-%                       writes to a mat file. 
+%                       thrashing and speed the program up.
 % -------- Output Data --------
 %   TEMPS               4D finite-difference temperature array
 %   time                time vector associated with TEMPS array
@@ -67,7 +66,7 @@ timeratio=tacq/dt;                  % NOTE: tacq/dt should be an integer
 
 % Calculate the maximum time step for stability of the thermal model
 w_max=max(w(:)); rho_min=min(rho); cp_min=min(cp); k_max=max(k);       % Required parameters for max time step calculation
-dt_max=1/(w_max/rho_min+2*k_max*(1+A^2+B^2)/(rho_min*cp_min*dx^2));  % Maximum allowable time step before iterations become unstable (s)
+dt_max=1/(w_max/rho_min+2*k_max*(1+A^2+B^2)/(rho_min*cp_min*dx^2))  % Maximum allowable time step before iterations become unstable (s)
 if dt>dt_max
     errordlg('Time step ''dt'' is too large for stable finite-difference calculations. Reduce ''dt'' and try again.','ERROR!','Modal');return
 end
@@ -76,9 +75,9 @@ end
 % Create Matrices of Properties
 % ----------------------------------------
 k1=zeros(nX,nY,nZ,'single');
-
-k1(:,:,:)=k(Modl(:,:,:)); %No diff here.
+k1(:,:,:)=k(Modl(:,:,:));
 inv_k1 = 1/k1;
+
 rho_m=zeros(nX,nY,nZ,'single');
 rho_m(:,:,:)=rho(Modl(:,:,:));
 
@@ -105,7 +104,7 @@ inv_k7k1= 1/circshift(k1,[0 0 -1 0]) + inv_k1;
 Coeff1 = 2*dt/(rho_cp*dx^2);                % (m*degC/W)
 k8 = (1/(inv_k2k1)+1/(inv_k3k1)...          % x direction conduction (W/m/degC)
        +A^2/(inv_k4k1)+A^2/(inv_k5k1)...    % y direction conduction (W/m/degC)
-       +B^2/(inv_k6k1)+B^2/(inv_k7k1));     % z direction conduction (W/m/degC) No diff here either.
+       +B^2/(inv_k6k1)+B^2/(inv_k7k1));     % z direction conduction (W/m/degC)
 Coeff2 = (1-(w_m*dt)./rho_m-2*dt/(rho_cp*dx^2).*k8); % Changes associated with this voxel's old temperature (Unitless)
 Perf=(w_m*dt*Tb)./rho_m; % Precalculate perfusion term (degC)
 
@@ -158,7 +157,6 @@ if exist('temp_file', 'var')
 else
     TEMPS=zeros(nX,nY,nZ,nntt,'single');    % Final exported array
     TEMPS(:,:,:,1) = T0; 
-% save('variables_to_check.mat',"TEMPS","T0")
 end
 
 
@@ -168,12 +166,11 @@ for mm=1:nFZ                                % Run Model for each focal zone loca
         nt=ceil(HT(mm)/dt)+ceil(CT(mm)/dt); % Number of time steps at FZ location mm
         PowerOn=zeros(nt,1);                % Zero indicates no power.
         PowerOn(1:ceil(HT(mm)/dt))=1;       % 1 indicates power on. 
-    Qmm(:,:,:)=Q(:,:,:,mm);                 % Power deposited at FZ location mm %Issue: What is this line of code meant to do?
+    Qmm(:,:,:)=Q(:,:,:,mm);                 % Power deposited at FZ location mm
     for nn=1:nt                             % Run Model for each timestep at FZ location mm
         cc=c_old;                           % Counter starts at 1 (line 120)
         c_old=cc+1;                         % Counter increments by 1 each iteration
-        waitbar(cc/NT,h); % Increment the waitbar
-        
+        waitbar(cc/NT,h);                   % Increment the waitbar
         % Shift Temperatures for use in solver
             T2 = circshift(T_new,[1 0 0 0]);
             T3 = circshift(T_new,[-1 0 0 0]);
@@ -182,20 +179,14 @@ for mm=1:nFZ                                % Run Model for each focal zone loca
             T6 = circshift(T_new,[0 0 1 0]);
             T7 = circshift(T_new,[0 0 -1 0]);
         % Solve for Temperature of Internal Nodes  (TEMPS_new = New Temperature)
-            x_dir_cond = T2(2:J,2:K,2:L)./(inv_k2k1)+T3(2:J,2:K,2:L)./(inv_k3k1);
-            y_dir_cond = A^2*(T4(2:J,2:K,2:L)./(inv_k4k1)+T5(2:J,2:K,2:L)./(inv_k5k1));
-            z_dir_cond = B^2*(T6(2:J,2:K,2:L)./(inv_k6k1)+T7(2:J,2:K,2:L)./(inv_k7k1));
-            T_new(2:J,2:K,2:L) = squeeze(Coeff1.*...                                                       % Conduction associated with neighboring voxels
-                                                    x_dir_cond...       % x direction conduction
-                                               +y_dir_cond...      % y direction conduction
-                                               +z_dir_cond...     % z direction conduction
+            T_new(2:J,2:K,2:L) = squeeze (Coeff1.*...                                                       % Conduction associated with neighboring voxels
+                                                    (T2(2:J,2:K,2:L)./(inv_k2k1)+T3(2:J,2:K,2:L)./(inv_k3k1)...       % x direction conduction
+                                               +A^2*(T4(2:J,2:K,2:L)./(inv_k4k1)+T5(2:J,2:K,2:L)./(inv_k5k1))...      % y direction conduction
+                                               +B^2*(T6(2:J,2:K,2:L)./(inv_k6k1)+T7(2:J,2:K,2:L)./(inv_k7k1)))...     % z direction conduction
                                           +Perf...                                                          % Perfusion associated with difference between baseline and Tb temperature
                                           +Qmm*PowerOn(nn)*dt./rho_cp...                                    % FUS power
                                           +T_old(2:J,2:K,2:L).*Coeff2);                                         % Temperature changes associated with this voxel's old temperature
-%             if nn ==1
-%                 sample = Coeff1.*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+Qmm*PowerOn(nn)*dt./rho_cp + T_old(2:J,2:K,2:L).*Coeff2;
-%                 save('variables_to_check.mat','T_new',"x_dir_cond","y_dir_cond","Perf","Qmm","PowerOn","Coeff2","rho_cp","dt","sample")
-%             end
+                                                        
         % Make recently calculated temperature (T_new) the old temperature (T_old) for the next calculation
             T_old(2:J,2:K,2:L)= T_new(2:J,2:K,2:L);
             if BC==1;                           % Adiabatic Boundary
@@ -221,15 +212,13 @@ for mm=1:nFZ                                % Run Model for each focal zone loca
                     TEMPS(:,:,:,cc/timeratio+1)=T_new(2:J,2:K,2:L);
                 end
             end
-            
     end
 end
 
 if use_file
     fclose(fid)
 end
-% Save some variables to a .mat file
-% save('variables_to_check.mat',"c_old","T_new","PowerOn","T7", "time","TEMPS")
+
 clear  T_new T_old T2 T3 T4 T5 T6 T7 k1 k2 k3 k4 k5 k6 k7 w_m rho_m cp_m rho_cp lambda
 toc   % Stops the stopwatch
 close(h);
