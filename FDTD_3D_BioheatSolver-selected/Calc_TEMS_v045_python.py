@@ -59,23 +59,25 @@ import numpy as np
 import scipy.io as sio
 # matlab_data = sio.loadmat('DemoModel.mat')
 from tqdm import tqdm
-
+import time
 def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
+    program_start = time.time()
     dx,dy,dz = Vox[0][0],Vox[0][1],Vox[0][2] # Voxel dimensions
-    a = dx/dy                       # Dimensionless Increment NEEDED TO CHANGE TO LOWERCASE TO LET PYTHON KNOW IT IS NOT A CONSTANT.
-    b = dx/dz                       # Dimensionless Increment
-    nx,ny,nz = modl.shape           # Itentify number of voxels.
-    t_final = np.sum(HT) + np.sum(CT)     # Total treatment time to be modeled. [s].
+    a = dx/dy                        # Dimensionless Increment NEEDED TO CHANGE TO LOWERCASE TO LET PYTHON KNOW IT IS NOT A CONSTANT.
+    b = dx/dz                        # Dimensionless Increment
+    nx,ny,nz = modl.shape            # Itentify number of voxels.
+    t_final = np.sum(HT)+np.sum(CT)# Total treatment time to be modeled. [s].
     time_vector = np.arange(0,t_final+1,tacq) # Time vector
-    NT = t_final/dt                 # Total number of FD time steps
-    nntt = len(time_vector)                # Total number of temperature distributions in time to save
-    timeratio = int(tacq/dt)             # NOTE: tacq/dt should be an integer
-
+    NT = t_final/dt                  # Total number of FD time steps
+    nntt = len(time_vector)          # Total number of temperature distributions in time to save
+    timeratio = int(tacq/dt)         # NOTE: tacq/dt should be an integer
+    modl = modl.astype(int)          # Convert the model to integers for use in vectorized operations
+    modl = modl-1                    # Subtract 1 from the model to make the model 0-indexed
     # Calculate the maximum time step for stability of the thermal model
-    w_max = w.max()               # Required parameters for max time step calculation
-    rho_min = int(rho.min())           # Required parameters for max time step calculation
-    cp_min = int(cp.min())             # Required parameters for max time step calculation
-    k_max = k_param.max()        # Required parameters for max time step calculation
+    w_max = w.max()                  # Required parameters for max time step calculation
+    rho_min = int(rho.min())         
+    cp_min = int(cp.min())           
+    k_max = k_param.max()            
     dt_max = 1/(w_max/rho_min+2.0*k_max*(1.0+a**2+b**2)/(rho_min*cp_min*(dx**2)))  # Maximum allowable time step before iterations become unstable (s)
     if dt>dt_max:
         raise ValueError('Time step ''dt'' is too large for stable finite-difference calculations. Reduce ''dt'' and try again.')
@@ -94,17 +96,10 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         w_m = w
         del w
     # Use a for loop to fill in matrices with appropriate values from the input vectors.
-    for i in tqdm(range(nx),desc='Filling in matrices k1, rho, cp, and w_m'):
-        for j in range(ny):
-            for k in range(nz):
-                x = modl[i,j,k]
-                x = int(x)
-                x-=1
-                k1[i,j,k] = k_param[0][x]
-                rho_m[i,j,k] = rho[0][x]
-                cp_m[i,j,k] = cp[0][x]
-                if operate_on_w_m:
-                    w_m[i,j,k] = w[0][x]
+    k1[:,:,:] = k_param[0][modl[:,:,:]]
+    rho_m[:,:,:] = rho[0][modl[:,:,:]]
+    cp_m[:,:,:] = cp[0][modl[:,:,:]]
+    w_m[:,:,:] = w[0][modl[:,:,:]]
     # Calculate inverse of k1 for use in solver
     inv_k1 = 1/k1
     
@@ -249,7 +244,5 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     #delete items
     for item in del_items:
         del item
-    
-    
-
+    print(f'Model run completed in {time.time()-program_start:.2f} seconds. \n') # the .2f limits the number of decimals to 2
     return Temps, time_vector
