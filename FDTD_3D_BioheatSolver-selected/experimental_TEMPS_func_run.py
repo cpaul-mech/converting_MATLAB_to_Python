@@ -25,7 +25,7 @@ cp = matlab_data['Props_cp']
 k = matlab_data['Props_k']
 w = matlab_data['Props_w']
 nFZ = matlab_data["nFZ"]
-GF = matlab_data['GF']
+
 
 
 (Temps, function_time) = calc_TEMPS_v045(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc)

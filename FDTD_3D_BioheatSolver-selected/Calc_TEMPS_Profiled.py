@@ -189,7 +189,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             Qmm[:,:,:,:] = Q[:,:,:,mm+1]
         else:
             Qmm = Q
-        for nn in tqdm(range(nt), desc='Running model for each timestep'):                             # Run Model for each timestep at FZ location mm
+        for nn in range(nt):                             # Run Model for each timestep at FZ location mm
             cc = c_old                           # Counter starts at 1 (line 120)
             c_old = cc+1                         # Counter increments by 1 each iteration
             # waitbar(cc/NT,h)                   # Increment the waitbar

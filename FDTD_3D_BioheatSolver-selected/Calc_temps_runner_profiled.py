@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.io as sio
-from Calc_TEMS_v045_python import calc_TEMPS_v045
+from Calc_TEMPS_Profiled import calc_TEMPS_v045
 import matplotlib.pyplot as plt
 import cProfile
 matlab_data = sio.loadmat('DemoModel.mat')
@@ -27,10 +27,10 @@ w = matlab_data['Props_w']
 nFZ = matlab_data["nFZ"]
 GF = matlab_data['GF']
 
-
-(Temps, function_time) = cProfile.run(calc_TEMPS_v045(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc))
+#(Temps, function_time) 
+cProfile.run('calc_TEMPS_v045(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc)')
 
 # sio.savemat('py_vars_to_check.mat', {'time': function_time, 'TEMPS':Temps})
-plt.plot(function_time, np.squeeze(Temps[70,70,59,:]))
-plt.show()
+# plt.plot(function_time, np.squeeze(Temps[70,70,59,:]))
+# plt.show()
 
