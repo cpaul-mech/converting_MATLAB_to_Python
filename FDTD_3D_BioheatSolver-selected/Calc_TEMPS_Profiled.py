@@ -60,6 +60,7 @@ import scipy.io as sio
 # matlab_data = sio.loadmat('DemoModel.mat')
 from tqdm import tqdm
 import time
+
 def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
     program_start = time.time()
     dx,dy,dz = Vox[0][0],Vox[0][1],Vox[0][2] # Voxel dimensions
@@ -139,9 +140,9 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
 
     # Boundary Condition
     if BC==1:                           # Adiabatic boundary condition (zero-slope)
-        T_old[0,  1:k_var, 1:l] = T0[0,:,:]
+        T_old[0,   1:k_var, 1:l] = T0[0,:,:]
         T_old[-1, 1:k_var, 1:l] = T0[-1,:,:]
-        T_old[1:j,      0, 1:l] = T0[:,0,:]
+        T_old[1:j, 0,   1:l] = T0[:,0,:]
         T_old[1:j, -1, 1:l] = T0[:,-1,:]
         T_old[1:j, 1:k_var, 0  ] = T0[:,:,0]
         T_old[1:j, 1:k_var, -1] = T0[:,:,-1]
@@ -179,16 +180,16 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         # Generate the PowerOn vector for each focal zone location (includes heating and cooling time)
         nt = np.ceil(HT[mm]/dt)+np.ceil(CT[mm]/dt) # Number of time steps at FZ location mm
         nt = int(nt)
-        PowerOn = np.zeros((nt,1))  # Zero indicates no power.
+        PowerOn = np.zeros((nt,1))                # Zero indicates no power.
         z = np.ceil(HT[mm]/dt)
         z = int(z)
-        PowerOn[0:z] = 1             # 1 indicates power on.
+        PowerOn[0:z] = 1       # 1 indicates power on.
         if mm>0:
             Qmm = np.zeros((nx,ny,nz,mm+1),dtype=np.float32) # Power deposited at FZ location mm
             Qmm[:,:,:,:] = Q[:,:,:,mm+1]
         else:
             Qmm = Q
-        for nn in tqdm(range(nt), desc='Running model for each timestep'):    # Run Model for each timestep at FZ location mm
+        for nn in tqdm(range(nt), desc='Running model for each timestep'):                             # Run Model for each timestep at FZ location mm
             cc = c_old                           # Counter starts at 1 (line 120)
             c_old = cc+1                         # Counter increments by 1 each iteration
             # waitbar(cc/NT,h)                   # Increment the waitbar
@@ -207,11 +208,11 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             sample = Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2 # Temperature changes associated with this voxel's old temperature (degC)
             sample = sample.squeeze() 
             T_new[1:j,1:k_var,1:l] = sample.copy()
-            # T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                  # Conduction associated with neighboring voxels
-            #                                  (x_dir_cond+y_dir_cond+z_dir_cond           # Conduction associated with neighboring voxels
-            #                                  +Perf                                       # Perfusion associated with difference between baseline and Tb temperature  
-            #                                  +Qmm*PowerOn[nn]*dt/rho_cp                  # FUS power
-            #                                  +T_old[1:j,1:k_var,1:l]*Coeff2))            # Temperature changes associated with this voxel's old temperature
+            # T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                                      # Conduction associated with neighboring voxels
+            #                                     (x_dir_cond+y_dir_cond+z_dir_cond                                        # Conduction associated with neighboring voxels
+            #                                     +Perf                                                        # Perfusion associated with difference between baseline and Tb temperature  
+            #                                     +Qmm*PowerOn[nn]*dt/rho_cp                                   # FUS power
+            #                                     +T_old[1:j,1:k_var,1:l]*Coeff2))                                       # Temperature changes associated with this voxel's old temperature
             
             # Make recently calculated temperature (T_new) the old temperature (T_old) for the next calculation
             T_old[1:j,1:k_var,1:l] = T_new[1:j,1:k_var,1:l]
