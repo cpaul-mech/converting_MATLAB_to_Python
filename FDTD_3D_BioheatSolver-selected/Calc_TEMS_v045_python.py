@@ -119,7 +119,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         +a**2/(inv_k4k1)+a**2/(inv_k5k1)    # y direction conduction (W/m/degC)
         +b**2/(inv_k6k1)+b**2/(inv_k7k1))     # z direction conduction (W/m/degC)
     Coeff2 = (1-(w_m*dt)/rho_m-2*dt/(rho_cp* dx**2)*k8) # Changes associated with this voxel's old temperature (Unitless)
-    Perf=(w_m*dt*Tb)/rho_m # Precalculate perfusion term (degC)
+    Perf=(w_m*dt*Tb)/rho_m # Precalculate perfusion term (degC) 
 
     j = -1                                 # second to last voxel in direction X #otherwise we can change this to nx+2 to account for python list slicing not including final option.
     k_var = -1                                 # second to last voxel in direction Y
@@ -201,7 +201,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             t7 = np.roll(T_new,-1,axis=2)
             
             # Solve for Temperature of Internal Nodes  (TEMPS_new = New Temperature)
-            x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1) # x direction conduction (W/m/degC)
+            x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)          # x direction conduction (W/m/degC)
             y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1)) # y direction conduction (W/m/degC)
             z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1)) # z direction conduction (W/m/degC)
             sample = Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2 # Temperature changes associated with this voxel's old temperature (degC)
@@ -209,7 +209,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             T_new[1:j,1:k_var,1:l] = sample.copy()
             # T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                                      # Conduction associated with neighboring voxels
             #                                     (x_dir_cond+y_dir_cond+z_dir_cond                                        # Conduction associated with neighboring voxels
-            #                                     +Perf                                                          # Perfusion associated with difference between baseline and Tb temperature
+            #                                     +Perf                                                        # Perfusion associated with difference between baseline and Tb temperature  
             #                                     +Qmm*PowerOn[nn]*dt/rho_cp                                   # FUS power
             #                                     +T_old[1:j,1:k_var,1:l]*Coeff2))                                       # Temperature changes associated with this voxel's old temperature
             
@@ -238,11 +238,11 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
                     Temps[:,:,:,index] = T_new[1:j,1:k_var,1:l]
         if use_file:
             fid.close()
-    sio.savemat('py_vars_to_check.mat', {'c_old':c_old, 'T_new':T_new, 'PowerOn': PowerOn, 'T7':t7, 'time': time_vector, 'TEMPS':Temps,'k8':k8})
+    # sio.savemat('py_vars_to_check.mat', {'c_old':c_old, 'T_new':T_new, 'PowerOn': PowerOn, 'T7':t7, 'time': time_vector, 'TEMPS':Temps,'k8':k8})
     # create list of items to be deleted.
-    del_items = [T_new, T_old, t2, t3, t4, t5, t6, t7, k1, w_m, rho_m, cp_m, rho_cp]
-    #delete items
-    for item in del_items:
-        del item
+    # del_items = [T_new, T_old, t2, t3, t4, t5, t6, t7, k1, w_m, rho_m, cp_m, rho_cp]
+    # #delete items
+    # for item in del_items:
+    #     del item
     print(f'Model run completed in {time.time()-program_start:.2f} seconds. \n') # the .2f limits the number of decimals to 2
     return Temps, time_vector
