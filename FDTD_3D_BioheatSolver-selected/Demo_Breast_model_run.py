@@ -3,8 +3,9 @@ import scipy.io as sio
 from Calc_TEMS_v045_python import calc_TEMPS_v045
 import matplotlib.pyplot as plt
 
-matlab_data = sio.loadmat('DemoModel.mat')
+matlab_data = sio.loadmat('DemoBreastModel.mat')
 Modl = matlab_data['Modl']
+#convert model to integers instead of doubles
 Modl = Modl.astype(int)
 Modl = Modl -1 #MATLAB is 1-indexed, python is 0-indexed
 Vox = matlab_data['Vox']
@@ -13,8 +14,8 @@ Vox = Vox/1000
 t0 = np.zeros((Modl.shape))
 dt = np.array(0.05) #seconds
 path = matlab_data['path']
-ht = np.array([path[0][-3]]) 
-ct = np.array([path[0][-2]])
+ht = np.array([path[:][-3]]) 
+ct = np.array([path[:][-2]])
 wType = np.array(1) # for uniform perfusion
 tacq = np.array(1)
 Tb = np.array(1)
@@ -25,7 +26,7 @@ Q_s = matlab_data['Q']
 cp = matlab_data['Props_cp']
 k = matlab_data['Props_k']
 w = matlab_data['Props_w']
-nFZ = matlab_data["nFZ"]
+nFZ = np.array(3)
 
 
 

@@ -63,16 +63,13 @@ import time
 def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
     program_start = time.time()
     dx,dy,dz = Vox[0][0],Vox[0][1],Vox[0][2] # Voxel dimensions
-    a = dx/dy                        # Dimensionless Increment NEEDED TO CHANGE TO LOWERCASE TO LET PYTHON KNOW IT IS NOT A CONSTANT.
+    a = dx/dy                        # Dimensionless Increment 
     b = dx/dz                        # Dimensionless Increment
     nx,ny,nz = modl.shape            # Itentify number of voxels.
     t_final = np.sum(HT)+np.sum(CT)# Total treatment time to be modeled. [s].
     time_vector = np.arange(0,t_final+1,tacq) # Time vector
-    NT = t_final/dt                  # Total number of FD time steps
     nntt = len(time_vector)          # Total number of temperature distributions in time to save
     timeratio = int(tacq/dt)         # NOTE: tacq/dt should be an integer
-    modl = modl.astype(int)          # Convert the model to integers for use in vectorized operations
-    modl = modl-1                    # Subtract 1 from the model to make the model 0-indexed
     # Calculate the maximum time step for stability of the thermal model
     w_max = w.max()                  # Required parameters for max time step calculation
     rho_min = int(rho.min())         
@@ -88,18 +85,17 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     k1 = np.zeros((nx,ny,nz),dtype=np.float32)
     rho_m = np.zeros((nx,ny,nz),dtype=np.float32)
     cp_m = np.zeros((nx,ny,nz),dtype=np.float32)
-    operate_on_w_m = False
-    if wType==1:
-        w_m = np.zeros((nx,ny,nz),dtype=np.float32)
-        operate_on_w_m = True
-    elif wType==2:
-        w_m = w
-        del w
-    # Use a for loop to fill in matrices with appropriate values from the input vectors.
+    # Populate matrices with values from model.
     k1[:,:,:] = k_param[0][modl[:,:,:]]
     rho_m[:,:,:] = rho[0][modl[:,:,:]]
     cp_m[:,:,:] = cp[0][modl[:,:,:]]
-    w_m[:,:,:] = w[0][modl[:,:,:]]
+    
+    if wType==1:
+        w_m = np.zeros((nx,ny,nz),dtype=np.float32)
+        w_m[:,:,:] = w[0][modl[:,:,:]]
+    elif wType==2:
+        w_m = w
+        del w
     # Calculate inverse of k1 for use in solver
     inv_k1 = 1/k1
     
