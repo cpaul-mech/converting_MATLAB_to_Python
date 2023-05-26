@@ -117,13 +117,13 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     Coeff1 = 2*dt/(rho_cp*dx**2)                # (m*degC/W)
     x_dir_cond = 1/(inv_k2k1)+1/(inv_k3k1)
     k8 = (1/(inv_k2k1)+1/(inv_k3k1)          # x direction conduction (W/m/degC)
-        +a**2/(inv_k4k1)+a**2/(inv_k5k1)    # y direction conduction (W/m/degC)
-        +b**2/(inv_k6k1)+b**2/(inv_k7k1))     # z direction conduction (W/m/degC)
+        +a**2/(inv_k4k1)+a**2/(inv_k5k1)     # y direction conduction (W/m/degC)
+        +b**2/(inv_k6k1)+b**2/(inv_k7k1))    # z direction conduction (W/m/degC)
     Coeff2 = (1-(w_m*dt)/rho_m-2*dt/(rho_cp* dx**2)*k8) # Changes associated with this voxel's old temperature (Unitless)
     Perf=(w_m*dt*Tb)/rho_m # Precalculate perfusion term (degC) 
 
-    j = -1                                 # second to last voxel in direction X #otherwise we can change this to nx+2 to account for python list slicing not including final option.
-    k_var = -1                                 # second to last voxel in direction Y
+    j = -1                                 # second to last voxel in direction X 
+    k_var = -1                             # second to last voxel in direction Y
     l = -1                                 # second to last voxel in direction Z
     
     # ----------------------------------------
@@ -180,14 +180,14 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         # Generate the PowerOn vector for each focal zone location (includes heating and cooling time)
         nt = np.ceil(HT[mm]/dt)+np.ceil(CT[mm]/dt) # Number of time steps at FZ location mm
         nt = int(nt)
-        PowerOn = np.zeros((nt,1))  # Zero indicates no power.
+        PowerOn = np.zeros((nt,1),dtype=np.int8)  # Zero indicates no power.
         z = np.ceil(HT[mm]/dt)
         z = int(z)
         PowerOn[0:z,:] = 1             # 1 indicates power on.
         #checking if Q has 4 dimensions
         if Q.ndim ==4:
             Qmm = np.zeros((nx,ny,nz),dtype=np.float32)   # Define Q for each focal zone location
-            Qmm[:,:,:] = Q[:,:,:,mm+1]
+            Qmm[:,:,:] = Q[:,:,:,mm]
         else:
             Qmm = Q[:,:,:]
         for nn in tqdm(range(nt), desc=f'Running model for each timestep at FZ location {mm}'):    # Run Model for each timestep at FZ location mm
@@ -202,12 +202,12 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             t7 = np.roll(T_new,-1,axis=2)
             
             # Solve for Temperature of Internal Nodes  (TEMPS_new = New Temperature)
-            x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)          # x direction conduction (W/m/degC)
-            y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1)) # y direction conduction (W/m/degC)
-            z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1)) # z direction conduction (W/m/degC)
-            sample = Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2 # Temperature changes associated with this voxel's old temperature (degC)
-            sample = sample.squeeze() 
-            T_new[1:j,1:k_var,1:l] = sample.copy()
+            # x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)          # x direction conduction (W/m/degC)
+            # y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1)) # y direction conduction (W/m/degC)
+            # z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1)) # z direction conduction (W/m/degC)
+            # sample =  # Temperature changes associated with this voxel's old temperature (degC)
+            T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*(t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)+(a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1))+(b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1)))+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2)
+
             # T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                  # Conduction associated with neighboring voxels
             #                                  (x_dir_cond+y_dir_cond+z_dir_cond           # Conduction associated with neighboring voxels
             #                                  +Perf                                       # Perfusion associated with difference between baseline and Tb temperature  
