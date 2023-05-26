@@ -69,7 +69,12 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     t_final = np.sum(HT)+np.sum(CT)# Total treatment time to be modeled. [s].
     time_vector = np.arange(0,t_final+1,tacq) # Time vector
     nntt = len(time_vector)          # Total number of temperature distributions in time to save
-    timeratio = int(tacq/dt)         # NOTE: tacq/dt should be an integer
+
+    timeratio = tacq/dt         # NOTE: tacq/dt should be an integer
+    if int(timeratio) == timeratio:        # Check if tacq/dt is an integer stored as a double, like 20.0
+        timeratio = int(timeratio)         # If so, convert to an integer, like 20
+    else:
+        raise ValueError('tacq/dt must be an integer. Please change tacq or dt and try again.')
     # Calculate the maximum time step for stability of the thermal model
     w_max = w.max()                  # Required parameters for max time step calculation
     rho_min = int(rho.min())         
@@ -178,16 +183,16 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         PowerOn = np.zeros((nt,1))  # Zero indicates no power.
         z = np.ceil(HT[mm]/dt)
         z = int(z)
-        PowerOn[0:z] = 1             # 1 indicates power on.
-        if mm>0:
-            Qmm = np.zeros((nx,ny,nz,mm+1),dtype=np.float32) # Power deposited at FZ location mm
-            Qmm[:,:,:,:] = Q[:,:,:,mm+1]
+        PowerOn[0:z,:] = 1             # 1 indicates power on.
+        #checking if Q has 4 dimensions
+        if Q.ndim ==4:
+            Qmm = np.zeros((nx,ny,nz),dtype=np.float32)   # Define Q for each focal zone location
+            Qmm[:,:,:] = Q[:,:,:,mm+1]
         else:
-            Qmm = Q
-        for nn in tqdm(range(nt), desc='Running model for each timestep'):    # Run Model for each timestep at FZ location mm
+            Qmm = Q[:,:,:]
+        for nn in tqdm(range(nt), desc=f'Running model for each timestep at FZ location {mm}'):    # Run Model for each timestep at FZ location mm
             cc = c_old                           # Counter starts at 1 (line 120)
             c_old = cc+1                         # Counter increments by 1 each iteration
-            # waitbar(cc/NT,h)                   # Increment the waitbar
             # Shift Temperatures for use in solver
             t2 = np.roll(T_new,1,axis=0)
             t3 = np.roll(T_new,-1,axis=0)
