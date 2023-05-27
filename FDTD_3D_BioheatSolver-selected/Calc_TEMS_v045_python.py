@@ -115,7 +115,6 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     inv_k7k1 = 1/np.roll(k1,-1,axis=2) + inv_k1
 
     Coeff1 = 2*dt/(rho_cp*dx**2)                # (m*degC/W)
-    x_dir_cond = 1/(inv_k2k1)+1/(inv_k3k1)
     k8 = (1/(inv_k2k1)+1/(inv_k3k1)          # x direction conduction (W/m/degC)
         +a**2/(inv_k4k1)+a**2/(inv_k5k1)     # y direction conduction (W/m/degC)
         +b**2/(inv_k6k1)+b**2/(inv_k7k1))    # z direction conduction (W/m/degC)
@@ -136,7 +135,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     T_old = np.zeros((nx+2,ny+2,nz+2),dtype=np.float32)   # Define Old Temperatures ***NOTE: Expanded by 2 voxels in x y and z direction
     # Initial Condition
     
-    T_old[1:j,1:k_var,1:l] = T0.copy()              # Fill in initial condition temperatures.
+    T_old[1:j,1:k_var,1:l] = T0              # Fill in initial condition temperatures.
 
     # Boundary Condition
     if BC==1:                           # Adiabatic boundary condition (zero-slope)
@@ -154,7 +153,7 @@ def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         T_old[:,:,0] = T_old[:,:,1]-(T_old[:,:,2]-T_old[:,:,1])
         T_old[:,:,-1] = T_old[:,:,-2]-(T_old[:,:,-3]-T_old[:,:,-2])
     
-    T_new = T_old.copy()                          # Define new temperatures
+    T_new = T_old                          # Define new temperatures
 
     # Initial temperature profile
     use_file = 0
