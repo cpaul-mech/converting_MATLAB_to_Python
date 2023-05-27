@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.io as sio
-from Calc_TEMS_v045_python import calc_TEMPS_v045
+from Calc_TEMS_v04S_python import calc_TEMPS_v04S
 import matplotlib.pyplot as plt
 
 matlab_data = sio.loadmat('DemoBreastModel.mat')
@@ -32,7 +32,7 @@ nFZ = np.array(3)
 
 
 
-(Temps, function_time) = calc_TEMPS_v045(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc)
+(Temps, function_time) = calc_TEMPS_v04S(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc)
 
 saved_version_temps = Temps[0:100,0:100,0:100,:] #save a smaller version of the temps to compare to MATLAB
 sio.savemat('py_vars_to_check.mat', {'time': function_time, 'saved_version_temps':saved_version_temps})

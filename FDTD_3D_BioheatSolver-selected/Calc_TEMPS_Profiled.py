@@ -61,7 +61,7 @@ import scipy.io as sio
 from tqdm import tqdm
 import time
 
-def calc_TEMPS_v045(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
+def calc_TEMPS_v04S(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
     program_start = time.time()
     dx,dy,dz = Vox[0][0],Vox[0][1],Vox[0][2] # Voxel dimensions
     a = dx/dy                        # Dimensionless Increment NEEDED TO CHANGE TO LOWERCASE TO LET PYTHON KNOW IT IS NOT A CONSTANT.
