@@ -18,7 +18,7 @@ Tb= 0;
 BC = 0; %adiabatic, no energy escapes out of the edges
 % the file is optional. 
 
-[TEMPS,time]=Calc_TEMPS_v04S(Modl,T0,Vox,dt,HT,CT,Props_rho,Props_k,Props_cp,wType,Props_w,Q,nFZ,tacq,Tb,BC);
+[TEMPS,time]=Calc_TEMPS_v04S_multithreading_exp(Modl,T0,Vox,dt,HT,CT,Props_rho,Props_k,Props_cp,wType,Props_w,Q,nFZ,tacq,Tb,BC);
 
 save('function_changes_TEMPS_preallocating.mat',"TEMPS")
 

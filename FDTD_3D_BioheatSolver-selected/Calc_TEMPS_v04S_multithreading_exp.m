@@ -53,7 +53,7 @@
 %       v04S     05 Jan 2015        % (Scott Almquist) improved the run time by precalculating any
 %                                      constant matrices and added option to write to a file (see
 %                                      helper function read_temp_file.m)
-function [TEMPS,time]=Calc_TEMPS_v04S(Modl,T0,Vox,dt,HT,CT,rho,k,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file);
+function [TEMPS,time]=Calc_TEMPS_v04S_multithreading_exp(Modl,T0,Vox,dt,HT,CT,rho,k,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file);
 
 dx=Vox(1);dy=Vox(2);dz=Vox(3);      % Voxel dimensions
 A=dx/dy; B=dx/dz;                   % Dimensionless increment
@@ -124,14 +124,14 @@ T_old=zeros(nX+2,nY+2,nZ+2,'single');   % Define Old Temperatures ***NOTE: Expan
 T_old(2:J,2:K,2:L)=T0;              % Fill in initial condition temperatures.
 
 % Boundary Condition
-if BC==1;                           % Adiabatic boundary condition (zero-slope)
+if BC==1                           % Adiabatic boundary condition (zero-slope)
     T_old(1,   2:K, 2:L)=T0(1,:,:);
     T_old(end, 2:K, 2:L)=T0(end,:,:);
     T_old(2:J, 1,   2:L)=T0(:,1,:);
     T_old(2:J, end, 2:L)=T0(:,end,:);
     T_old(2:J, 2:K, 1  )=T0(:,:,1);
     T_old(2:J, 2:K, end)=T0(:,:,end);
-elseif BC==2;                       % Matching Slope Boundary (slope between edge and 2nd voxel matches slope between 2nd and 3rd voxel)
+elseif BC==2                       % Matching Slope Boundary (slope between edge and 2nd voxel matches slope between 2nd and 3rd voxel)
     T_old(1,:,:)=T_old(2,:,:)-(T_old(3,:,:)-T_old(2,:,:));
     T_old(end,:,:)=T_old(end-1,:,:)-(T_old(end-2,:,:)-T_old(end-1,:,:));
     T_old(:,1,:)=T_old(:,2,:)-(T_old(:,3,:)-T_old(:,2,:));
@@ -167,11 +167,10 @@ parfor mm=1:nFZ                                % Run Model for each focal zone l
         PowerOn=zeros(nt,1);                % Zero indicates no power.
         PowerOn(1:ceil(HT(mm)/dt))=1;       % 1 indicates power on. 
     Qmm(:,:,:)=Q(:,:,:,mm);% Power deposited at FZ location mm
-    c_old = 1;
     for nn=1:nt  % Run Model for each timestep at FZ location mm
-        cc=c_old;                           % Counter starts at 1 (line 120)
-        c_old=cc+1;                         % Counter increments by 1 each iteration
-        waitbar(cc/NT,h);                   % Increment the waitbar
+%         cc=c_old;                           % Counter starts at 1 (line 120)
+%         c_old=cc+1;                         % Counter increments by 1 each iteration
+        waitbar(nn/NT,h);                   % Increment the waitbar
         % Shift Temperatures for use in solver
             T2 = circshift(T_new,[1 0 0 0]);
             T3 = circshift(T_new,[-1 0 0 0]);
@@ -190,14 +189,14 @@ parfor mm=1:nFZ                                % Run Model for each focal zone l
                                                         
         % Make recently calculated temperature (T_new) the old temperature (T_old) for the next calculation
             T_old(2:J,2:K,2:L)= T_new(2:J,2:K,2:L);
-            if BC==1;                           % Adiabatic Boundary
+            if BC==1                           % Adiabatic Boundary
                 T_old(1,:,:)=T_new(2,:,:);
                 T_old(end,:,:)=T_new(end-1,:,:);
                 T_old(:,1,:)=T_new(:,2,:);
                 T_old(:,end,:)=T_new(:,end-1,:);
                 T_old(:,:,1)=T_new(:,:,2);
                 T_old(:,:,end)=T_new(:,:,end-1);
-            elseif BC==2;                       % Matching Slope Boundary
+            elseif BC==2                       % Matching Slope Boundary
                 T_old(1,:,:)=T_new(2,:,:)-(T_new(3,:,:)-T_new(2,:,:));
                 T_old(end,:,:)=T_new(end-1,:,:)-(T_new(end-2,:,:)-T_new(end-1,:,:));
                 T_old(:,1,:)=T_new(:,2,:)-(T_new(:,3,:)-T_new(:,2,:));
@@ -206,12 +205,12 @@ parfor mm=1:nFZ                                % Run Model for each focal zone l
                 T_old(:,:,end)=T_new(:,:,end-1)-(T_new(:,:,end-2)-T_new(:,:,end-1));
             end
             
-            if rem(cc,timeratio)==0                 % Determine whether to save the current TEMPS or not
+            if rem(nn,timeratio)==0                 % Determine whether to save the current TEMPS or not
                 if use_file
                     fwrite(fid, T_new(2:J,2:K,2:L), 'single');
                 else
-                    
-                    TEMPS(:,:,:,cc/timeratio+1)=T_new(2:J,2:K,2:L);
+                    index = nn/timeratio+1;
+                    TEMPS(:,:,:,index)=T_new(2:J,2:K,2:L);
                 end
             end
     end
