@@ -140,11 +140,11 @@ def calc_TEMPS_v04S(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
 
     # Boundary Condition
     if BC==1:                           # Adiabatic boundary condition (zero-slope)
-        T_old[0,  1:k_var, 1:l] = T0[0,:,:]
-        T_old[-1, 1:k_var, 1:l] = T0[-1,:,:]
-        T_old[1:j,      0, 1:l] = T0[:,0,:]
-        T_old[1:j, -1, 1:l] = T0[:,-1,:]
-        T_old[1:j, 1:k_var, 0  ] = T0[:,:,0]
+        T_old[0,   1:k_var, 1:l] = T0[0,:,:]
+        T_old[-1,  1:k_var, 1:l] = T0[-1,:,:]
+        T_old[1:j,       0, 1:l] = T0[:,0,:]
+        T_old[1:j,      -1, 1:l] = T0[:,-1,:]
+        T_old[1:j, 1:k_var,  0] = T0[:,:,0]
         T_old[1:j, 1:k_var, -1] = T0[:,:,-1]
     elif BC==2:                       # Matching Slope Boundary (slope between edge and 2nd voxel matches slope between 2nd and 3rd voxel)
         T_old[0,:,:] = T_old[1,:,:]-(T_old[2,:,:]-T_old[1,:,:])
