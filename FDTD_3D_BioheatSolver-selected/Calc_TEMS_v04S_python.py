@@ -63,14 +63,15 @@ import time
 def calc_TEMPS_v04S(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC,temp_file=None):
     program_start = time.time()
     dx,dy,dz = Vox[0][0],Vox[0][1],Vox[0][2] # Voxel dimensions
-    a = dx/dy                        # Dimensionless Increment 
-    b = dx/dz                        # Dimensionless Increment
-    nx,ny,nz = modl.shape            # Itentify number of voxels.
-    t_final = np.sum(HT)+np.sum(CT)# Total treatment time to be modeled. [s].
+    # Since a and b are only ever used when they're squared, we can just square them here.
+    a = (dx/dy)**2                        # Dimensionless Increment
+    b = (dx/dz)**2                        # Dimensionless Increment
+    nx,ny,nz = modl.shape                 # Itentify number of voxels.
+    t_final = np.sum(HT)+np.sum(CT)       # Total treatment time to be modeled. [s].
     time_vector = np.arange(0,t_final+1,tacq) # Time vector
-    nntt = len(time_vector)          # Total number of temperature distributions in time to save
+    nntt = len(time_vector)               # Total number of temperature distributions in time to save
 
-    timeratio = tacq/dt         # NOTE: tacq/dt should be an integer
+    timeratio = tacq/dt                    # NOTE: tacq/dt should be an integer
     if int(timeratio) == timeratio:        # Check if tacq/dt is an integer stored as a double, like 20.0
         timeratio = int(timeratio)         # If so, convert to an integer, like 20
     else:
@@ -80,7 +81,7 @@ def calc_TEMPS_v04S(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
     rho_min = int(rho.min())         
     cp_min = int(cp.min())           
     k_max = k_param.max()            
-    dt_max = 1/(w_max/rho_min+2.0*k_max*(1.0+a**2+b**2)/(rho_min*cp_min*(dx**2)))  # Maximum allowable time step before iterations become unstable (s)
+    dt_max = 1/(w_max/rho_min+2.0*k_max*(1.0+a+b)/(rho_min*cp_min*(dx**2)))  # Maximum allowable time step before iterations become unstable (s)
     if dt>dt_max:
         raise ValueError('Time step ''dt'' is too large for stable finite-difference calculations. Reduce ''dt'' and try again.')
     # ----------------------------------------
@@ -116,8 +117,8 @@ def calc_TEMPS_v04S(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
 
     Coeff1 = 2*dt/(rho_cp*dx**2)                # (m*degC/W)
     k8 = (1/(inv_k2k1)+1/(inv_k3k1)          # x direction conduction (W/m/degC)
-        +a**2/(inv_k4k1)+a**2/(inv_k5k1)     # y direction conduction (W/m/degC)
-        +b**2/(inv_k6k1)+b**2/(inv_k7k1))    # z direction conduction (W/m/degC)
+        +a/(inv_k4k1)+a/(inv_k5k1)     # y direction conduction (W/m/degC)
+        +b/(inv_k6k1)+b/(inv_k7k1))    # z direction conduction (W/m/degC)
     Coeff2 = (1-(w_m*dt)/rho_m-2*dt/(rho_cp* dx**2)*k8) # Changes associated with this voxel's old temperature (Unitless)
     Perf=(w_m*dt*Tb)/rho_m # Precalculate perfusion term (degC) 
 
@@ -202,12 +203,12 @@ def calc_TEMPS_v04S(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
             t7 = np.roll(T_new,-1,axis=2)
             
             # Solve for Temperature of Internal Nodes  (TEMPS_new = New Temperature)
-            # x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)          # x direction conduction (W/m/degC)
-            # y_dir_cond = (a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1)) # y direction conduction (W/m/degC)
-            # z_dir_cond = (b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1)) # z direction conduction (W/m/degC)
+            x_dir_cond = t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)         # x direction conduction (W/m/degC)
+            y_dir_cond = (a)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1))   # y direction conduction (W/m/degC)
+            z_dir_cond = (b)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1))   # z direction conduction (W/m/degC)
             # sample =  # Temperature changes associated with this voxel's old temperature (degC)
-            T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*(t2[1:j,1:k_var,1:l]/(inv_k2k1)+t3[1:j,1:k_var,1:l]/(inv_k3k1)+(a**2)*(t4[1:j,1:k_var,1:l]/(inv_k4k1)+t5[1:j,1:k_var,1:l]/(inv_k5k1))+(b**2)*(t6[1:j,1:k_var,1:l]/(inv_k6k1)+t7[1:j,1:k_var,1:l]/(inv_k7k1)))+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2)
-
+            T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*(x_dir_cond+y_dir_cond+z_dir_cond)+Perf+Qmm*PowerOn[nn]*dt/rho_cp+T_old[1:j,1:k_var,1:l]*Coeff2)
+            
             # T_new[1:j,1:k_var,1:l] = np.squeeze(Coeff1*                                  # Conduction associated with neighboring voxels
             #                                  (x_dir_cond+y_dir_cond+z_dir_cond           # Conduction associated with neighboring voxels
             #                                  +Perf                                       # Perfusion associated with difference between baseline and Tb temperature  

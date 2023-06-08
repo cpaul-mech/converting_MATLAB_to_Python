@@ -1,12 +1,12 @@
-from os import environ
+# from os import environ
 
-environ['OMP_NUM_THREADS'] = '12'
+# environ['OMP_NUM_THREADS'] = '12'
 import numpy as np
 import scipy.io as sio
 from Calc_TEMS_v04S_python import calc_TEMPS_v04S
-import control.matlab as control
-import matplotlib.pyplot as plt
-import multiprocessing
+# import control.matlab as control
+# import matplotlib.pyplot as plt
+# import multiprocessing
 # n_cores = multiprocessing.cpu_count()
 # print(n_cores)
 matlab_data = sio.loadmat('DemoModel.mat')
@@ -35,7 +35,7 @@ nFZ = matlab_data["nFZ"]
 GF = matlab_data['GF']
 del matlab_data
 
-(Temps, function_time) = calc_TEMPS_v04S(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq, Tb, Bc)
+(Temps, function_time) = calc_TEMPS_v04S(Modl,t0,Vox, dt, ht,ct,rho,k,cp,wType,w,Q_s,nFZ,tacq,Tb,Bc)
 # sio.savemat('py_vars_to_check.mat', {'time': function_time, 'TEMPS':Temps})
 # plt.plot(function_time, np.squeeze(Temps[70,70,59,:]))
 # plt.show()
