@@ -54,7 +54,8 @@
 #       v04S     05 Jan 2015        # (Scott Almquist) improved the run time by precalculating any
 #                                      constant matrices and added option to write to a file (see
 #                                      helper function read_temp_file.m)
-#   Python Version 0.1  11 Jun 2023 # Christopher Paul, Brigham Young University     
+#     Python     11 Jun 2023        # (Christopher Paul) Converted entire file to python, complete with
+#                                     variable checking files.    
 
 import numpy as np
 import scipy.io as sio
