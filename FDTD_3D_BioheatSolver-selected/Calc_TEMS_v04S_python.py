@@ -1,4 +1,4 @@
-# This file is meant to have the same functionality as the matlab file Calc_TEMS_v045.m
+"""This Python file is meant to have the same functionality as the matlab file Calc_TEMS_v045.m"""
 # -------- Function Name ---------------------------------------------- 
 # Calc_TEMPS_v04S.m
 # -------- Purpose --------
@@ -54,6 +54,7 @@
 #       v04S     05 Jan 2015        # (Scott Almquist) improved the run time by precalculating any
 #                                      constant matrices and added option to write to a file (see
 #                                      helper function read_temp_file.m)
+#   Python Version 0.1  11 Jun 2023 # Christopher Paul, Brigham Young University     
 
 import numpy as np
 import scipy.io as sio
@@ -241,10 +242,6 @@ def calc_TEMPS_v04S(modl,T0,Vox,dt,HT,CT,rho,k_param,cp,wType,w,Q,nFZ,tacq,Tb,BC
         if use_file:
             fid.close()
     # sio.savemat('py_vars_to_check.mat', {'c_old':c_old, 'T_new':T_new, 'PowerOn': PowerOn, 'T7':t7, 'time': time_vector, 'TEMPS':Temps,'k8':k8})
-    # create list of items to be deleted.
-    # del_items = [T_new, T_old, t2, t3, t4, t5, t6, t7, k1, w_m, rho_m, cp_m, rho_cp]
-    # #delete items
-    # for item in del_items:
-    #     del item
+    
     print(f'Model run completed in {time.time()-program_start:.2f} seconds. \n') # the .2f limits the number of decimals to 2
     return Temps, time_vector
