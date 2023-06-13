@@ -14,7 +14,7 @@
     
     4. Either clone the github repository and open up the FDTD_3D_BioheatSolver-selected in the current workspace. 
     
-    5. Or, download the experimental_TEMPS_func_run.py file and the Calc_TEMPS_v045_python.py file and place them 
+    5. Or, download the simple_model_runner.py file and the Calc_TEMPS_v045_python.py file and place them 
     in your project folder.
     
     6. Run the experimental_TEMPS_func_run.py file.
