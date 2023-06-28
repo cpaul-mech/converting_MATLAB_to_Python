@@ -32,14 +32,14 @@ clicked = tk.StringVar()
 clicked.set( ".txt" )
   
 # Create Dropdown menu
-drop = OptionMenu( root , clicked , *options )
+drop = tk.OptionMenu( root , clicked, *file_type_options)
 drop.pack()
   
 # Create button, it will change label text
-button = Button( root , text = "click Me" , command = show ).pack()
+button = tk.Button( root , text = "click Me" , command = show ).pack()
   
 # Create Label
-label = Label( root , text = " " )
+label = tk.Label( root , text = " " )
 label.pack()
   
 # Execute tkinter
