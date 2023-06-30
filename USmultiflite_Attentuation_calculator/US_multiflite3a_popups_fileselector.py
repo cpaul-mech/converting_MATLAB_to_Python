@@ -18,7 +18,7 @@ import os
 # Create the root window
 root = tk.Tk()
 root.geometry("300x200")
-root.title("File Selector")
+root.title("File Type Selector")
 
 file_type_options = [".txt", ".isf", ".xls"]
 
@@ -29,7 +29,7 @@ def show():
 clicked = tk.StringVar()
 
 # initial menu text
-clicked.set( ".txt" )
+clicked.set( file_type_options[0])
   
 # Create Dropdown menu
 drop = tk.OptionMenu( root , clicked, *file_type_options)
@@ -44,4 +44,6 @@ label.pack()
   
 # Execute tkinter
 root.mainloop()
+
+
 

@@ -1,0 +1,415 @@
+% Lite version (May 22, 2007) of USmultif.m -- does not calculate frequency slope of attenuation from division of 
+%   spectra, but rather from multiple frequency points. Combines UScutback.m and USslope.m.
+%
+%   Multifrequency program for calculating the ultrasound attenuation and the acoustic velocity
+%	of pairs of experimental samples at several selected frequencies.  A sample of longer length L1
+% 	is placed between a pulsed transmitting transducer and a receiving transducer; at each given frequency of  
+%	excitation (perhaps 3 or 4 discrete frequencies within the transducer bandwidth), a time-domain file is stored
+% 	of the received pressure waveform at length L1.  The sample is then cut down to length L2 and replaced; a second
+%  	time-domain file is stored. But if it is not possible to cut down the sample, the second length can be zero
+% 	(i.e., a water-only signal) and the reflection losses at the two faces of the sample that are now missing can
+% 	be estimated from the calculated impedance of the sample, with reduced accuracy.
+%
+%   In this modified program (1/3/08), the acoustic velocity that is used to calculate impedance for the pupose of 
+%   estimating the reflection coefficient at each face can be entered by hand, if known, or if this entry is zero, 
+%   by using the calculated acoustic velocity as described in the next paragraph. This option avoids large errors 
+%   in the calculated attenuation when the velocity is calculated incorrectly for very thin samples.
+%   
+% 	The acoustic velocity is found by the time-of-flight velocity method using the maximum index (not peak) of the 
+% 	'xcorr' of the analytic signal envelopes, as described in Le, Phys. Med. Biol., 43, 1998.
+% 
+%	The attenuation in dB/cm is obtained at each measured frequency point by integrating the time-domain signals 
+%  	(after windowing has been applied, if needed). 
+% 
+%   Changes:
+%	July 6, 2010 Updated strings in input window.  This version for Windows.
+%   Aug 13, 2010 Added log-log plot and linear fit to atten. data to determine power-law coefficient (later removed).
+%   Mar 29, 2023 Major improvements:
+%   1. Instead of using a fixed value for speed of sound in the water bath, which is used in the calculation of the 
+%    sample speed of sound and which depends on temperature, the actual temperature of the bath is now an input 
+%    parameter in a dialog box, and the actual speed of sound is calculated using a formula from 
+%    Greenspan and Tschiegg, JResNBS, vol. 59, no. 4, Oct. 1957.
+%   2. Instead of a log-log plot of attenuation as a function of frequency to estimate the exponential in the frequency 
+%    dependence formula, a power-law fit using 'a*x^n+b' and the 'fit' function in the Curve Fitting Toolbox is implemented.  
+%    This has two benefits:
+%    a) The fit is consistent with an attenuation power-law curve and the exponential can now be found more accurately.
+%    b) In circumstances where the face(s) of the sample are somewhat convex(concave) such the the beam is slightly 
+%     divergent(focused) as it passes through the sample, thus causing an artificial addition(subtraction) to the 
+%     attenuation value, this artificial bias can be effectively eliminated by shifting (adjusting) the attenuation values 
+%     such that the power-law curve is forced to pass through the origin (this is based on the reasonable power-law 
+%     assumption of "zero frequency equals zero attenuation").
+%
+%   Copyright D.A.Christensen 2023. 
+
+clear all
+close all
+
+[sel,ok] = listdlg('PromptString','Select time-domain file type:','Name','File Type to Open',...
+    'SelectionMode','single','ListSize',[150 90],'ListString',['.txt';'.isf';'.xls']); 
+if ok==0; return; end
+
+repeat=1; firstflag=1;
+ii=1; savedt=0;
+
+while repeat		% Start of overall 'while' for repeating data set analysis.
+close all
+
+valid=0;
+while valid==0	
+	if sel==1
+	    [filename2, pathname2] = uigetfile('*.txt','Open .txt file for SHORTER LENGTH L2 or WATER-ONLY');
+		    % NOTE: The .txt or .isf files must be nx2 tab-delimited text files, with 2nd column containing the  
+			% received signal as a function of time, for example as recorded by a digital oscilloscope and saved
+	        % as text. The .isf (spreadsheet) files saved from Tektronix scopes have time in the 1st column. The
+			% .xls files must have this same content saved as EXCEL worksheets.
+		if filename2==0; return; end
+		sm2=load([pathname2 filename2]);
+		[filename, pathname] = uigetfile('*.txt','Open .txt file for LONGER LENGTH L1');
+		if filename==0 
+		else sm1=load([pathname filename]); valid=1; end
+	elseif sel==2
+	    [filename2, pathname2] = uigetfile('*.isf','Open .isf file for SHORTER LENGTH L2 or WATER-ONLY');
+		if filename2==0; return; end
+		sm2=load([pathname2 filename2]);
+	    [filename, pathname] = uigetfile('*.isf','Open .isf file for LONGER LENGTH L1');
+		if filename==0
+		else sm1=load([pathname filename]); valid=1; end
+	elseif sel==3
+	    [filename2, pathname2] = uigetfile('*.xls','Open .xls file for SHORTER LENGTH L2 or WATER-ONLY');
+		if filename2==0; return; end
+		sm2=xlsread([pathname2 filename2]);
+	    [filename, pathname] = uigetfile('*.xls','Open .xls file for LONGER LENGTH L1');
+		if filename==0
+		else sm1=xlsread([pathname filename]); valid=1; end
+	end
+end
+
+s1=sm1(:,2)';	% make row vector.
+N=length(s1);
+s2=sm2(:,2)';	% make row vector.
+if length(s2)~=N
+	error ('The lengths of the two files must be the same');  end
+
+% ------------------------ Windowing ---------------------------------
+if firstflag
+button0 = questdlg(['Do you wish to window the time-domain data (to exclude multiple reflections for example)? ',...
+        'If yes, mouse click on the desired beginning point, then ending point, in the following two plots.'],...
+	   'Window Time Data?','Window','Don''t Window','Window');
+end
+wmean=mean(s2(1:N));smean=mean(s1(1:N));     % calculate, in case window is not asked for.
+Windflag='No.'; Windone=0;
+if strcmp(button0,'Window')
+	while Windone==0
+    plot(s1);xlabel('index');ylabel('pressure');title('Signal through LONGER length L1'); pause(0.5)
+	figure;plot(s2);xlabel('index');ylabel('pressure');title('Signal through SHORTER length L2 or WATER-ONLY path');
+     [x,~]=ginput(2);
+    wliml=round(x(1)); wlimu=round(x(2));
+    close
+     [x,~]=ginput(2);
+    sliml=round(x(1)); slimu=round(x(2));
+    close
+    if (wliml<1 || wlimu<1 || wlimu>N || sliml<1 || sliml>N || slimu<1 || slimu>N || wliml>wlimu || sliml>slimu)
+        dummy=inputdlg('','ERROR!',1,{'Limits must be between 1 and N, and lower < upper.'}); 
+    else wmean=mean(s2(1:wliml)); s2(1:wliml)=wmean; s2(wlimu:N)=wmean;
+        smean=mean(s1(1:sliml)); s1(1:sliml)=smean; s1(slimu:N)=smean;
+        Windone=1; Windflag='Yes.';
+    end
+	end
+end
+% ---------------- Enter the input ---------------------------
+estdt=(sm1(10,1)-sm1(1,1))/9;	% try increment in time-domain file, if accurate enough.
+if (firstflag || estdt~=savedt)
+	valid=0;
+	while valid==0	
+		savedt=estdt;
+		prompt={'Enter time increment of files (in s):',...
+			'Enter SHORTER thickness L2 (in mm), or 0 if WATER:',...
+			'Enter LONGER sample thickness L1 (in mm):',...
+			'Enter sample density (in gm/cm^3): [not needed if L2~=0. R is not calc]',...
+            'Enter acoustic velocity (in m/s): [not used if =0; calc c used instead]',...
+            'Enter temperature of water bath in degrees C'};
+		titl='Input for Calculations'; lines=1; def={num2str(estdt),'0','70','1.000','0','23'};
+		answer1=inputdlg(prompt,titl,lines,def);
+		if ~isempty(answer1); valid=1;
+			deltat=str2double(answer1(1));
+			L2cm=str2double(answer1(2))/10;
+		    L1cm=str2double(answer1(3))/10;
+			dens=str2double(answer1(4))*1e3;	% density in kg/m^3.
+            venter=str2double(answer1(5));   % velocity to take place of calculated velocity in impedance calc.
+            WT=str2double(answer1(6));   % water temperature to calculate water speed of sound.
+			if L2cm>L1cm; dummy=inputdlg({' '},'L2 > L1?',1,{'L2 is greater than L1. Is this OK?'}); 
+				if isempty(dummy); valid=0; end
+			end
+		end
+	end
+end
+t=0:deltat:deltat*(N-1);	% for plots only.
+% vw=1489;	% assumed velocity of ultrasound in water in m/s only at 22 degrees C. 
+% next calculate speed of sound in dist. water, from Greenspan and Tschiegg, JResNBS, vol. 59, no. 4, Oct. 1957. 
+vw=1402.736 +5.03358*WT -0.0579506*WT^2 +3.31636e-4*WT^3 -1.45262e-6*WT^4 +3.0449e-9*WT^5;
+
+T=deltat*N;	% time length of record.
+deltaf=1/T;
+f=0:deltaf:deltaf*floor(N/2);	% need only half of freq range for Hermitian spectrum.
+fMHz=f/1e6;	% frequency in MHz.
+
+%--------- Fourier transforms ---------------
+
+FF1=fft(s1);	% frequency spectrum of length L1.
+F1=2*abs(FF1(1:floor(N/2)+1))/N;	% see Bioen 1101 class notes to see why these factors.
+F1(1)=abs(FF1(1))/N;
+phi1=unwrap(angle(FF1(1:floor(N/2)+1)));	% in radians. 
+FF2=fft(s2);	% frequency spectrum of length L2.
+F2=2*abs(FF2(1:floor(N/2)+1))/N;	% see Bioen 1101 class notes to see why these factors.
+F2(1)=abs(FF2(1))/N;
+phi2=unwrap(angle(FF2(1:floor(N/2)+1)));	% in radians. 
+
+        % The next lines find the frequency at the center of mass of shorter-length spectrum F2:
+threshind=find(F2 < max(F2)/20);    % first threshold F2 so noise less than peak/20 does not contribute to mass.
+F2th=F2; F2th(threshind)=0;
+spectint=sum(F2th);       % total mass of spectrum.
+spectcum=cumsum(F2th);    % cumulative sum of spectrum.
+centind=find((spectcum > spectint/2),1,'first'); % first index where cumulative area is 1/2 of total area.
+centfreq=centind*deltaf/1e6;    % frequency in MHz.
+
+dcm=L1cm-L2cm;	% length difference.
+dm=dcm/100;	% d in m.
+
+%-------------- Calculation of time-of-flight velocity using envelope of analytic signal ---------
+
+P1=2*FF1; P1(floor(N/2)+2:N)=0;	% fabricate Fourier transform of analytic signal for length L1.
+psi1=ifft(P1);
+psi1env=sqrt(psi1.*conj(psi1));
+
+P2=2*FF2; P2(floor(N/2)+2:N)=0;	% fabricate Fourier transform of analytic signal for length L2.
+psi2=ifft(P2);
+psi2env=sqrt(psi2.*conj(psi2));
+
+cc=xcorr(psi1env,psi2env);      % find cross-correlation of two envelopes.
+[val,peakindcc]=max(cc);		% find the location of the max of the cross-correlation.
+peakindshift=peakindcc-length(psi1env);    % subtract the ceter of the cross-correlation index.
+
+difft=peakindshift*deltat;	% difference in arrival times.
+L1=L1cm/100;	% convert to m.
+L2=L2cm/100;
+dl=L1-L2;
+vtf=dl/((dl/vw)+difft);			% substitution method; see Le, 1998.
+
+%--------------- Estimate of reflection loss at faces -------------------------
+
+densw=1000;	% density of water in kg/m^3.
+Zw=densw*vw;	% impedance of water.
+if venter==0
+    vimp=vtf;
+else vimp=venter;
+end
+Zs=dens*vimp;	% impedance of sample.
+R=(Zs-Zw)/(Zs+Zw);	% pressure reflection coeff.
+T=1-R*R;		% power transmission coeff.
+TT=-1*10*log10(T);	% estimate of atten due to both face reflections.
+if L2==0 	% water-only path.
+	attface=TT;	% account for estimated face reflection attenuation.
+	Wflag='Yes.';
+else
+	attface=0;
+	Wflag='No.';
+end
+
+%------------- Calculation of attenuation in time domain -----------------
+
+s2sq=(s2-wmean).*(s2-wmean); s1sq=(s1-smean).*(s1-smean);   % subtract means to avoid bias in power calc.
+attcmtd=(10*log10(sum(s2sq)/sum(s1sq))-attface)/dcm;    % calc of atten in time domain in dB per cm.
+
+if L2==0		% totatt only makes sense if we have water-only data.
+	totatt=10*log10(sum(s2sq)/sum(s1sq));
+else
+	totatt=NaN;
+end
+
+%-------------  Pressure Plots  ---------------
+
+if firstflag 
+button2 = questdlg('Do you wish to see plots of all 6 signals and spectra?',...
+    'Plots Displayed?','All Plots','No Plots','All Plots');
+
+if strcmp(button2,'All Plots')
+button1 = questdlg(['Do you wish to see plots over ONLY first 1/40 of frequency range, and also ignore dc?',...
+	' (Otherwise see full frequency span).'],'Partial Frequency Range?','Partial','Full','Partial');
+end
+end
+
+if strcmp(button2,'All Plots')
+
+if strcmp(button1,'Partial')
+	plotlength=floor(length(fMHz)/40); si=2;
+	fMHzplot=fMHz(si:plotlength);
+elseif strcmp(button1,'Full'); plotlength=length(fMHz); fMHzplot=fMHz; si=1;
+end
+
+% 	figure;plot(fMHzplot,phi1(si:plotlength));xlabel('frequency (MHz)');ylabel('phase of pressure (rad)');...
+% 		title('Phase of Spectrum at Longer Length L1');
+	figure;plot(fMHzplot,F1(si:plotlength));xlabel('frequency (MHz)');ylabel('abs(fft) of pressure');...
+		title('Spectrum of Signal at Longer Length L1');
+        set(gcf,'Name','Freq Spectrum - Longer Length','NumberTitle','off');zoom on
+% 	figure;plot(fMHzplot,phi2(si:plotlength));xlabel('frequency (MHz)');ylabel('phase of pressure (rad)');...
+% 		title('Phase of Spectrum at Shorter Length L2');
+	figure;plot(fMHzplot,F2(si:plotlength));xlabel('frequency (MHz)');ylabel('abs(fft) of pressure');...
+		title('Spectrum of Signal at Shorter Length L2 or Water-only');
+        set(gcf,'Name','Freq Spectrum - Shorter Length','NumberTitle','off');zoom on
+    	figure;plot(t,psi1env);xlabel('time (s)');ylabel('pressure');
+        title('Envelope of Analytic Signal - Longer Length L1');
+        set(gcf,'Name','Anal Sig - Longer Length','NumberTitle','off');zoom on
+	figure;plot(t,psi2env);xlabel('time (s)');ylabel('pressure');
+        title('Envelope of Analytic Signal - Shorter Length L2 or Water-only');
+        set(gcf,'Name','Anal Sig - Shorter Length','NumberTitle','off');zoom on
+    	figure;plot(t,s1);xlabel('time (s)');ylabel('pressure');title('Signal through Longer Length L1');
+        set(gcf,'Name','Time Signal - Longer Length','NumberTitle','off');zoom on
+	figure;plot(t,s2);xlabel('time (s)');ylabel('pressure');title('Signal through Shorter Length L2 or Water-only');
+        set(gcf,'Name','Time Signal - Shorter Length','NumberTitle','off');zoom on
+end
+	
+	prompt={'Calculated time-of-flight velocity (in m/s):',...
+	'Attenuation from time domain (in dB/cm):','          at center frequency (in MHz):',''};
+	titl='Results'; lines=1;
+	val={num2str(vtf,4),num2str(attcmtd,3),num2str(centfreq,'%4.3f'),...
+		'Hit OK to save (or Cancel to not save).'};
+    options.Resize='on'; options.WindowStyle='normal';
+	dummy=inputdlg(prompt,titl,lines,val,options);
+
+if ~isempty(dummy)
+	
+	disp('-------------------------------------------------------------------     ');
+	disp('INPUT');
+	disp(['  Filename Shorter length:',filename2,'  /  Filename Longer length:',filename]);
+	disp(['  Shorter length L2 = ',num2str(L2cm*10),' mm.',...
+		'                                  Longer length L1 = ',num2str(L1cm*10),' mm.']);
+	disp(['  Assumed density of sample = ',num2str(dens/1000),' g/cm^3.']);
+	disp(['  Time windowing done?  ',Windflag]);
+	disp('------------------------');
+	disp('VELOCITY');
+	disp(['  Time-of-flight velocity = ',num2str(vtf,4),' m/s.']);
+	disp('------------------------');
+	disp('UNADJUSTED ATTENUATION');
+	disp(['  Attenuation from time domain analysis = ',num2str(attcmtd,3),' dB/cm']);
+	disp(['          around center frequency of ',num2str(centfreq,'%4.3f'),' MHz.']);
+	disp(['      Face reflection losses subtracted? (if shorter length is water only)  ',Wflag]);
+	disp(['      Calc. imped. of sample= ',num2str(Zs/1e6,3),' MRayl / Est. reflect. loss, both faces = ',...
+			num2str(TT,3),' dB.']);
+	disp(['  Total attenuation (incl. reflections) of longer-length sample in water = ',...
+			num2str(totatt,3),' dB.']);
+	disp('-------------------------------------------------------------------     ');
+
+	Atten(ii)=attcmtd;
+	Centerfreq(ii)=centfreq;
+	Phasevel(ii)=vtf;
+	truncfilename=filename(1:length(filename)-4);	% strip suffix from name.
+	truncfilename2=filename2(1:length(filename2)-4);	% strip suffix from name.
+	Pairnames(ii)={[truncfilename2,'/',truncfilename]};
+	ii=ii+1;
+	
+end
+
+button3 = questdlg('Do you wish to analyze another data pair? (Otherwise finished).',...
+		'Analyze More Data?','Next Data Pair','Finished','Next Data Pair');
+		
+if strcmp(button3,'Finished')
+	repeat=0;
+end
+firstflag=0;
+end		% end of overall 'while' for repeating data set analysis.
+
+close all
+ii=ii-1;    % number of samples.
+Mphasevel=mean(Phasevel);
+STDphasevel=std(Phasevel);
+
+% ----------------- Linear Attenuation Plot ----------------------
+p=[0,0];     % dummy values if just one sample.
+minf=min(Centerfreq); maxf=max(Centerfreq);
+figure 
+for jj=1:ii
+	plot(Centerfreq(jj),Atten(jj),'*'); 
+    axis([0   1.5*maxf   min(0,1.1*min(Atten))   max(0,1.1*max(Atten))]); hold on;
+	text(Centerfreq(jj)+0.1,Atten(jj),char(Pairnames(jj)),'FontSize',8,'Color','r');
+end
+
+if ii>1
+	p=polyfit(Centerfreq,Atten,1);	% linear least squares fit.
+	lin=polyval(p,Centerfreq);
+	plot(Centerfreq,lin,'k');
+end
+
+xlabel('frequency (MHz)');ylabel('attenuation (dB/cm)');
+title('Plot of UNADJUSTED Attenuation/cm vs. Frequency - with LINEAR Fit'); xl=get(gca,'XLim'); yl=get(gca,'YLim');
+if p(1) < 100		% to avoid printing slope if all data points at same freq, so slope=inf.
+  text(0.1*xl(2)+0.7*xl(1), 0.8*yl(2)+0.1*yl(1),['Slope = ',num2str(p(1),3),' dB/cm/MHz.'...
+    '    Intercept = ',num2str(p(2),3),' dB/cm.']);
+  text(0.1*xl(2)+0.7*xl(1), 0.7*yl(2)+0.1*yl(1),['Attenuation fit at 1 MHz = ',num2str(p(1)+p(2),3),' dB/cm.'])
+end
+text(0.1*xl(2)+0.7*xl(1), 0.9*yl(2)+0.1*yl(1),['Phase Velocity = ',num2str(Mphasevel,4),...
+    ' ±',num2str(STDphasevel,2),' m/s']);
+set(gcf,'Name','Multifrequency Attenuation with Linear Fit','NumberTitle','off');zoom on;
+
+% ------ New section fits a power law to attenuation and adjusts attenuation curve to pass through the origin -------
+% ----------- This should better fit reality assuming there is zero attenuation at zero frequency --------------------
+
+y=Atten; % put variables into form used by the function fittype.
+x=Centerfreq; % in MHz.
+g=fittype('a*x^n+b','independent','x');  % fit to a power law formula.
+plfit=fit(x',y',g,'StartPoint',[1 0 1]); % find coeffs of power law fit; a is slope, b is offset, n is exponent.
+cv=coeffvalues(plfit); b=cv(2);
+% Adjust attenuations to pass through origin:
+AdjAtten=Atten-b;
+y=AdjAtten; 
+plfit=fit(x',y',g,'StartPoint',[1 0 1]); % redo the fit with the adjusted attenuation values.
+cv=coeffvalues(plfit); a=cv(1); b=cv(2); n=cv(3);   %  a is slope, b is new offset (~zero?), n is exponent.
+
+% Plot adjusted attenuations:
+figure
+for jj=1:ii
+	plot(Centerfreq(jj),AdjAtten(jj),'*'); 
+    axis([0   1.5*maxf   min(0,1.1*min(AdjAtten))   max(0,1.1*max(AdjAtten))]); hold on;
+	text(Centerfreq(jj)+0.1,AdjAtten(jj),char(Pairnames(jj)),'FontSize',8,'Color','r');
+end
+
+plot(plfit) % superimpose power law fit.
+
+xlabel('frequency (MHz)');ylabel('Adjusted attenuation (dB/cm)');
+title('Plot of Adjusted Attenuation/cm vs. Frequency - with POWER LAW Fit'); xl=get(gca,'XLim'); yl=get(gca,'YLim');
+text(0.1*xl(2)+0.7*xl(1), 0.8*yl(2)+0.1*yl(1),['Slope at 1 MHz = ',num2str(a*n,3),' dB/cm/MHz.'...
+    '   Freq. Exponent = ',num2str(n,3)]);
+text(0.1*xl(2)+0.7*xl(1), 0.7*yl(2)+0.1*yl(1),['Attenuation fit at 1 MHz = ',num2str(a+b,3),' dB/cm.'])
+
+text(0.1*xl(2)+0.7*xl(1), 0.9*yl(2)+0.1*yl(1),['Phase Velocity = ',num2str(Mphasevel,4),...
+    ' ±',num2str(STDphasevel,2),' m/s']);
+set(gcf,'Name','Multifrequency Attenuation with Power Law Fit','NumberTitle','off');zoom on;
+
+% ----------------- Phase Velocity Plot ----------------------
+figure
+maxv=max(Phasevel); minv=min(Phasevel); 
+for jj=1:ii
+	plot(Centerfreq(jj),Phasevel(jj),'*'); hold on;
+	text(Centerfreq(jj)+0.04,Phasevel(jj),num2str(Phasevel(jj),4),'FontSize',8,'Color','r');
+end
+xlabel('frequency (MHz)');ylabel('phase velocity (m/s)');
+axis([0   1.1*maxf   0.95*minv   1.05*maxv]);
+title('Phase Velocity vs. Frequency');xl=get(gca,'XLim');yl=get(gca,'YLim');
+text(0.2*xl(2)+0.8*xl(1), 0.9*yl(2)+0.1*yl(1),['Phase Velocity = ',num2str(Mphasevel,4),...
+        ' ±',num2str(STDphasevel,2),' m/s']);
+set(gcf,'Name','Multifrequency Phase Velocity','NumberTitle','off');zoom on;
+	
+[file2,path2]=uiputfile('US_.mat','Save Results?');
+    if file2~=0
+		finalname2=[path2 file2];
+		save(finalname2,'Atten','AdjAtten','Centerfreq','Phasevel','a','b','n','Pairnames')
+    end
+
+	disp('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   ');
+	disp('FINAL RESULTS: VELOCITY');
+	disp(['  Time-of-flight velocity = ',num2str(Mphasevel,4),' ±',num2str(STDphasevel,2),' m/s']);
+	disp('------------------------');
+	disp('ADJUSTED ATTENUATION');
+	disp([' Slope at 1 MHz = ',num2str(a*n,3),' dB/cm/MHz.' ]);
+    disp([' Freq. Exponent = ',num2str(n,3)]);
+	disp([' Attenuation fit at 1 MHz = ',num2str(a+b,3),' dB/cm.'])
+	disp('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   ');
