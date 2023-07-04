@@ -109,11 +109,16 @@ else:
 df2 = df2.drop([0,1])
 print(df2.head())
 root3.destroy()
+print(df2[col1_name])
+# Now I need to plot the two files on the same plot after converting them to numpy arrays
+time_file1 = df[col1_name].to_numpy()
+time_file2 = df2[col1_name].to_numpy()
+avg_file1 = df[col2_name].to_numpy()
+avg_file2 = df2[col2_name].to_numpy()
 
-# Now I need to plot the two files on the same plot
 import matplotlib.pyplot as plt
-plt.plot(df[col1_name], df[col2_name], label="Shorter L2")
-plt.plot(df2[col1_name], df2[col2_name], label="Longer L2")
+plt.plot(time_file1, avg_file1, label="Shorter L2")
+plt.plot(time_file2, avg_file2, label="Longer L2")
 plt.xlabel("Time (s)")
 plt.ylabel("Average (B)")
 plt.title("Comparison of Shorter and Longer L2")
