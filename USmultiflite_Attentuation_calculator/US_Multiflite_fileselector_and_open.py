@@ -15,6 +15,7 @@ from tkinter import *
 import pandas as pd
 from tkinter import filedialog
 import os
+import matplotlib.pyplot as plt
 
 file_type_selected = ""
 
@@ -32,8 +33,6 @@ file_type_options = [".txt", ".isf", ".xls",".csv"]
 
 def close():
     root.quit()
-    
-
 
 clicked = StringVar()
 
@@ -116,12 +115,14 @@ time_file2 = df2[col1_name].to_numpy()
 avg_file1 = df[col2_name].to_numpy()
 avg_file2 = df2[col2_name].to_numpy()
 
-import matplotlib.pyplot as plt
-plt.plot(time_file1, avg_file1, label="Shorter L2")
-plt.plot(time_file2, avg_file2, label="Longer L2")
-plt.xlabel("Time (s)")
-plt.ylabel("Average (B)")
-plt.title("Comparison of Shorter and Longer L2")
-plt.legend()
-plt.show()
+
+def plot_data(time, avg, title):
+    plt.plot(time, avg)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Average (B)")
+    plt.title(title)
+    plt.show()
+
+plot_data(time_file1, avg_file1, "Shorter Length L2")
+plot_data(time_file2, avg_file2, "Longer Length L2")
 
